@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "equipment_classification_agent_func": {
+      "commandName": "Project",
+      "commandLineArgs": "--port 7098"
+    },
+    "Container (Dockerfile)": {
+      "commandName": "Docker",
+      "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
+      "containerRunArguments": "--init",
+      "httpPort": 32375,
+      "useSSL": false
+    }
+  }
+}
