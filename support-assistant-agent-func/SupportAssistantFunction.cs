@@ -6,6 +6,7 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using support_assistant_agent_func.Models;
+using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
 
@@ -50,7 +51,8 @@ public class SupportAssistantFunction
 
             var knowledgeBase = JsonSerializer.Deserialize<KnowledgeBase>(content, options);
 
-            // index the knowledge base document
+            knowledgeBase!.Summary = await GetLlmSummary(knowledgeBase.comments);
+
             await _azureAISearchService.IndexKnowledgeBaseAsync(knowledgeBase);
         }
         catch (Exception ex)
@@ -72,7 +74,7 @@ public class SupportAssistantFunction
         SearchRequest searchRequest;
         try
         {
-            searchRequest = JsonSerializer.Deserialize<SearchRequest>(requestBody);
+            searchRequest = JsonSerializer.Deserialize<SearchRequest>(requestBody)!;
         }
         catch (JsonException ex)
         {
@@ -97,5 +99,21 @@ public class SupportAssistantFunction
               kernel: _kernel);
 
         return new OkObjectResult(result.Content);
+    }
+
+    private async Task<string> GetLlmSummary(List<Comment> comments)
+    {
+        var summaryPrompt = CorePrompts.GetSummaryPrompt(comments);
+
+        ChatHistory history = [];
+        history.AddUserMessage(summaryPrompt);
+        var chatCompletionService = _kernel.GetRequiredService<IChatCompletionService>();
+
+        var response = await chatCompletionService.GetChatMessageContentAsync(
+            history,
+            kernel: _kernel
+        );
+
+        return response.Content!;
     }
 }
