@@ -13,7 +13,7 @@ namespace support_assistant_agent_func.Services;
 
 public interface IAzureAISearchService
 {
-    Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase);
+    Task<string> IndexKnowledgeBaseAsync(KnowledgeBase knowledgeBase);
     Task SearchKnowledgeBaseAsync(string scope, string query);
 }
 
@@ -52,23 +52,16 @@ public class AzureAISearchService : IAzureAISearchService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase)
+    public async Task<string> IndexKnowledgeBaseAsync(KnowledgeBase knowledgeBase)
     {
-        // if the index doesn't exist, create it
         try
         {
-            Response<SearchIndex> response = _searchIndexClient.GetIndex(_indexName);
-
-            var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
-
-            string textForEmbedding = $"title: {knowledgebase.title}, " +
-                                      $"description: {knowledgebase.description} ";
-
-            OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
-            knowledgebase.VectorContent = embedding.ToFloats().ToArray().ToList();
+            // tests whether the index exists or not
+            _searchIndexClient.GetIndex(_indexName);
         }
         catch (RequestFailedException ex)
         {
+            // if the index doesn't exist, create it
             if (ex.Status == 404)
             {
                 _logger.LogInformation("Creating Index...");
@@ -77,7 +70,30 @@ public class AzureAISearchService : IAzureAISearchService
             }
         }
 
-        throw new NotImplementedException();
+        SearchDocument searchDocument = await GetSearchDocumentAsync(knowledgeBase);
+        var searchClient = _searchIndexClient.GetSearchClient(_indexName);
+        var indexResponse = await searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(new List<SearchDocument> { searchDocument }));
+
+        return indexResponse.GetRawResponse().Status.ToString();
+    }
+
+    private async Task<SearchDocument> GetSearchDocumentAsync(KnowledgeBase knowledgeBase)
+    {
+        var searchDocument = new SearchDocument();
+
+        searchDocument["problem_id"] = knowledgeBase.problem_id;
+        searchDocument["title"] = knowledgeBase.title;
+
+        var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
+
+        string textForEmbedding = $"title: {knowledgeBase.title}, " +
+                                  $"description: {knowledgeBase.description} ";
+
+        OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
+
+        searchDocument["vectorContent"] = embedding.ToFloats().ToArray().ToList();
+
+        return searchDocument;
     }
 
     public async Task SearchKnowledgeBaseAsync(string scope, string query)

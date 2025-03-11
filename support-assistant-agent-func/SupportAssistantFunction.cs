@@ -48,9 +48,10 @@ public class SupportAssistantFunction
                 PropertyNameCaseInsensitive = true
             };
 
-            var knowledgebase = JsonSerializer.Deserialize<Knowledgebase>(content, options);
+            var knowledgeBase = JsonSerializer.Deserialize<KnowledgeBase>(content, options);
 
-            // TODO: Create / Index Data
+            // index the knowledge base document
+            await _azureAISearchService.IndexKnowledgeBaseAsync(knowledgeBase);
         }
         catch (Exception ex)
         {

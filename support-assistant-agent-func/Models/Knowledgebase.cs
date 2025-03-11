@@ -1,6 +1,6 @@
 ﻿namespace support_assistant_agent_func.Models;
 
-public record Knowledgebase
+public record KnowledgeBase
 {
     public string problem_id { get; set; }
     public string title { get; set; }
@@ -20,6 +20,4 @@ public record Knowledgebase
     public List<string> Scope { get; set; }
     public List<Attachment> attachments { get; set; }
     public List<Comment> comments { get; set; }
-    public string Summary { get; set; } // LLM Summary
-    public IList<float> VectorContent { get; set; } = new List<float>();
 }
