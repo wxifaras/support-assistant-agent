@@ -6,13 +6,15 @@ using Microsoft.Extensions.Options;
 using support_assistant_agent_func.Models;
 using Azure.Search.Documents.Indexes.Models;
 using Azure;
+using OpenAI.Embeddings;
+using Azure.Search.Documents.Models;
 
 namespace support_assistant_agent_func.Services;
 
 public interface IAzureAISearchService
 {
-    Task IndexKnowledgeBaseAsync();
-    Task SearchKnowledgeBaseAsync();
+    Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase);
+    Task SearchKnowledgeBaseAsync(string scope, string query);
 }
 
 public class AzureAISearchService : IAzureAISearchService
@@ -50,12 +52,20 @@ public class AzureAISearchService : IAzureAISearchService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task IndexKnowledgeBaseAsync()
+    public async Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase)
     {
         // if the index doesn't exist, create it
         try
         {
             Response<SearchIndex> response = _searchIndexClient.GetIndex(_indexName);
+
+            var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
+
+            string textForEmbedding = $"title: {knowledgebase.title}, " +
+                                      $"description: {knowledgebase.description} ";
+
+            OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
+            knowledgebase.VectorContent = embedding.ToFloats().ToArray().ToList();
         }
         catch (RequestFailedException ex)
         {
@@ -70,7 +80,7 @@ public class AzureAISearchService : IAzureAISearchService
         throw new NotImplementedException();
     }
 
-    public async Task SearchKnowledgeBaseAsync()
+    public async Task SearchKnowledgeBaseAsync(string scope, string query)
     {
         throw new NotImplementedException();
     }
