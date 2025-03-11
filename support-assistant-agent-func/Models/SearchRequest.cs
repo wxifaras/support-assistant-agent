@@ -8,7 +8,7 @@ public record SearchRequest
     public Guid SessionId { get; set; }
 
     [Required]
-    public string UserLevel { get; set; }
+    public string Scope { get; set; }
 
     [Required]
     public string SearchText { get; set; }
