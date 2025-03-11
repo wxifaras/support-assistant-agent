@@ -208,48 +208,45 @@ public class AzureAISearchService : IAzureAISearchService
                         IsFilterable = true,
                         IsFacetable = true
                     },
-                    new ComplexField("attachments")
+                    new ComplexField("attachments",collection: true)
                     {
                         Fields =
                         {
                             new SimpleField("file_name", SearchFieldDataType.String)
                             {
                                 IsFilterable = true,
-                                IsSortable = true,
                                 IsFacetable = false
                             },
                             new SimpleField("file_url", SearchFieldDataType.String)
                             {
-                                IsFilterable = false,
-                                IsSortable = false
+                                IsFilterable = true,
+                                IsFacetable = false
                             }
                         }
                     },
-                    new ComplexField("comments")
+                    new ComplexField("comments",collection: true)
                     {
                         Fields =
                         {
                             new SimpleField("comment_id", SearchFieldDataType.String)
                             {
-                                IsFilterable = true,
-                                IsSortable = true,
-                                IsFacetable = false
+                               IsFilterable = true,
+                               IsFacetable = false
                             },
                             new SimpleField("comment_text", SearchFieldDataType.String)
                             {
                                 IsFilterable = true,
-                                IsSortable = true,
                                 IsFacetable = false
                             },
                             new SimpleField("commented_by", SearchFieldDataType.String)
                             {
-                                IsFilterable = false,
-                                IsSortable = false
+                                IsFilterable = true,
+                                IsFacetable = false
                             },
                             new SimpleField("commented_date", SearchFieldDataType.DateTimeOffset)
                             {
-                                IsFilterable = false,
-                                IsSortable = false
+                                IsFilterable = true,
+                                IsFacetable = false
                             }
                         }
                     },
