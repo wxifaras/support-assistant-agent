@@ -87,7 +87,8 @@ public class SupportAssistantFunction
 
         var sessionId = searchRequest.SessionId;
         var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
-        chatHistory.AddUserMessage(searchRequest.SearchText);
+        chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
+        chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
 
         ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
               chatHistory,
