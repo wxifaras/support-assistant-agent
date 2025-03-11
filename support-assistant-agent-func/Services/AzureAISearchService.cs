@@ -5,13 +5,17 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using support_assistant_agent_func.Models;
 using Azure.Search.Documents.Indexes.Models;
+using Azure;
+using OpenAI.Embeddings;
+using Azure.Search.Documents.Models;
+using System;
 
 namespace support_assistant_agent_func.Services;
 
 public interface IAzureAISearchService
 {
-    Task IndexKnowledgeBaseAsync();
-    Task SearchKnowledgeBaseAsync();
+    Task<string> IndexKnowledgeBaseAsync(KnowledgeBase knowledgeBase);
+    Task SearchKnowledgeBaseAsync(string scope, string query);
 }
 
 public class AzureAISearchService : IAzureAISearchService
@@ -28,37 +32,90 @@ public class AzureAISearchService : IAzureAISearchService
     private readonly string _azureOpenAIKey;
     private readonly string _azureOpenAIEmbeddingDimensions;
     private readonly string _azureOpenAIEmbeddingDeployment;
-    private readonly SearchIndexClient _indexClient;
+    private readonly SearchIndexClient _searchIndexClient;
     private readonly AzureOpenAIClient _azureOpenAIClient;
-    private readonly SearchClient _searchClient;
-
 
     public AzureAISearchService(
        ILogger<AzureAISearchService> logger,
        IOptions<AzureAISearchOptions> azureAISearchOptions,
        IOptions<AzureOpenAIOptions> azureOpenAIOptions,
        SearchIndexClient indexClient,
-       AzureOpenAIClient azureOpenAIClient,
-       SearchClient searchClient)
+       AzureOpenAIClient azureOpenAIClient)
     {
         _indexName = azureAISearchOptions.Value.IndexName ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.IndexName));
         _azureOpenAIEndpoint = azureOpenAIOptions.Value.AzureOpenAIEndPoint ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEndPoint));
         _azureOpenAIKey = azureOpenAIOptions.Value.AzureOpenAIKey ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIKey));
         _azureOpenAIEmbeddingDimensions = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions));
         _azureOpenAIEmbeddingDeployment = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDeployment));
-        _indexClient = indexClient ?? throw new ArgumentNullException(nameof(indexClient));
+        _searchIndexClient = indexClient ?? throw new ArgumentNullException(nameof(indexClient));
         _azureOpenAIClient = azureOpenAIClient ?? throw new ArgumentNullException(nameof(azureOpenAIClient));
-        _searchClient = searchClient ?? throw new ArgumentNullException(nameof(searchClient));
-
+        
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task IndexKnowledgeBaseAsync()
+    public async Task<string> IndexKnowledgeBaseAsync(KnowledgeBase knowledgeBase)
     {
-        throw new NotImplementedException();
+        try
+        {
+            // tests whether the index exists or not
+            _searchIndexClient.GetIndex(_indexName);
+        }
+        catch (RequestFailedException ex)
+        {
+            // if the index doesn't exist, create it
+            if (ex.Status == 404)
+            {
+                _logger.LogInformation("Creating Index...");
+
+                await CreateAISearchIndexAsync();
+            }
+        }
+
+        SearchDocument searchDocument = await GetSearchDocumentAsync(knowledgeBase);
+        var searchClient = _searchIndexClient.GetSearchClient(_indexName);
+        var indexResponse = await searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(new List<SearchDocument> { searchDocument }));
+
+        return indexResponse.GetRawResponse().Status.ToString();
     }
 
-    public async Task SearchKnowledgeBaseAsync()
+    private async Task<SearchDocument> GetSearchDocumentAsync(KnowledgeBase knowledgeBase)
+    {
+        var searchDocument = new SearchDocument();
+
+        searchDocument["id"] = Guid.NewGuid().ToString();
+        searchDocument["problem_id"] = knowledgeBase.problem_id;
+        searchDocument["title"] = knowledgeBase.title;
+        searchDocument["description"] = knowledgeBase.description;
+        searchDocument["status"] = knowledgeBase.status;
+        searchDocument["priority"] = knowledgeBase.priority;
+        searchDocument["impact"] = knowledgeBase.impact;
+        searchDocument["category"] = knowledgeBase.category;
+        searchDocument["reported_date"] = knowledgeBase.reported_date;
+        searchDocument["resolved_date"] = knowledgeBase.resolved_date;
+        searchDocument["assigned_to"] = knowledgeBase.assigned_to;
+        searchDocument["reported_by"] = knowledgeBase.reported_by;
+        searchDocument["root_cause"] = knowledgeBase.root_cause;
+        searchDocument["workaround"] = knowledgeBase.workaround;
+        searchDocument["resolution"] = knowledgeBase.resolution;
+        searchDocument["related_incidents"] = knowledgeBase.related_incidents;
+        searchDocument["Scope"] = knowledgeBase.Scope;
+        searchDocument["attachments"] = knowledgeBase.attachments;
+        searchDocument["comments"] = knowledgeBase.comments;
+        searchDocument["Summary"] = knowledgeBase.Summary;
+
+        var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
+
+        string textForEmbedding = $"title: {knowledgeBase.title}, " +
+                                  $"description: {knowledgeBase.description}";
+
+        OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
+
+        searchDocument["vectorContent"] = embedding.ToFloats().ToArray().ToList();
+
+        return searchDocument;
+    }
+
+    public async Task SearchKnowledgeBaseAsync(string scope, string query)
     {
         throw new NotImplementedException();
     }
@@ -113,15 +170,87 @@ public class AzureAISearchService : IAzureAISearchService
                         {
                             ContentFields =
                             {
-                                new SemanticField("test"),
+                                new SemanticField("title"),
+                                new SemanticField("description"),
+                            },
+                            TitleField = new SemanticField(fieldName: "title"),
+                            KeywordsFields =
+                            {
+                                new SemanticField("title")
                             }
                         })
                     }
                 },
                 Fields =
                 {
-                    new SimpleField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true },
-                    new SearchableField("test") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SearchableField("problem_id") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("title") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("description") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("status") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("priority") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("impact") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("category") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("reported_date", SearchFieldDataType.DateTimeOffset) { IsKey = false, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SimpleField("resolved_date", SearchFieldDataType.DateTimeOffset) { IsKey = false, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SearchableField("assigned_to") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("reported_by") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("root_cause") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("workaround") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("resolution") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("related_incidents", SearchFieldDataType.Collection(SearchFieldDataType.String))
+                    {
+                        IsFilterable = true,
+                        IsFacetable = true
+                    },
+                    new SimpleField("Scope", SearchFieldDataType.Collection(SearchFieldDataType.String))
+                    {
+                        IsFilterable = true,
+                        IsFacetable = true
+                    },
+                    new ComplexField("attachments",collection: true)
+                    {
+                        Fields =
+                        {
+                            new SimpleField("file_name", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("file_url", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsFacetable = false
+                            }
+                        }
+                    },
+                    new ComplexField("comments",collection: true)
+                    {
+                        Fields =
+                        {
+                            new SimpleField("comment_id", SearchFieldDataType.String)
+                            {
+                               IsFilterable = true,
+                               IsFacetable = false
+                            },
+                            new SimpleField("comment_text", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("commented_by", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("commented_date", SearchFieldDataType.DateTimeOffset)
+                            {
+                                IsFilterable = true,
+                                IsFacetable = false
+                            }
+                        }
+                    },
+                    new SearchableField("Summary") { IsFilterable = true, IsSortable = true },
                     new SearchField("vectorContent", SearchFieldDataType.Collection(SearchFieldDataType.Single))
                     {
                         IsSearchable = true,
@@ -131,7 +260,7 @@ public class AzureAISearchService : IAzureAISearchService
                 }
             };
 
-            await _indexClient.CreateOrUpdateIndexAsync(searchIndex).ConfigureAwait(false);
+            await _searchIndexClient.CreateOrUpdateIndexAsync(searchIndex).ConfigureAwait(false);
 
             _logger.LogInformation($"Completed creating index {searchIndex}");
         }

@@ -49,13 +49,6 @@ builder.Services.AddSingleton(sp =>
     return new AzureOpenAIClient(new Uri(azureOpenAIOptions.Value.AzureOpenAIEndPoint!), new AzureKeyCredential(azureOpenAIOptions.Value.AzureOpenAIKey!));
 });
 
-builder.Services.AddSingleton(sp =>
-{
-    var azureAISearchOptions = sp.GetRequiredService<IOptions<AzureAISearchOptions>>();
-    var indexClient = sp.GetRequiredService<SearchIndexClient>();
-    return indexClient.GetSearchClient(azureAISearchOptions.Value.IndexName);
-});
-
 builder.Services.AddSingleton<IAzureAISearchService>(sp =>
 {
     var azureAISearchOptions = sp.GetRequiredService<IOptions<AzureAISearchOptions>>();
@@ -63,8 +56,7 @@ builder.Services.AddSingleton<IAzureAISearchService>(sp =>
     var logger = sp.GetRequiredService<ILogger<AzureAISearchService>>();
     var searchIndexClient = sp.GetRequiredService<SearchIndexClient>();
     var azureOpenAIClient = sp.GetRequiredService<AzureOpenAIClient>();
-    var searchClient = sp.GetRequiredService<SearchClient>();
-    return new AzureAISearchService(logger, azureAISearchOptions, azureOpenAIOptions, searchIndexClient, azureOpenAIClient, searchClient);
+    return new AzureAISearchService(logger, azureAISearchOptions, azureOpenAIOptions, searchIndexClient, azureOpenAIClient);
 });
 
 builder.Services.AddSingleton<Kernel>(provider =>

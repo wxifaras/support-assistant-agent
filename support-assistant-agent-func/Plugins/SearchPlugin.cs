@@ -26,7 +26,7 @@ public class SearchPlugin
     [KernelFunction]
     [Description("Searches the knowledge base for solutions to a support ticket.")]
     public async Task<string> SearchKnowledgeBase(
-        [Description("The support ticket query")] string query, [Description("The Scope")] string scope)
+    [Description("Search Text")] string searchText, [Description("The Scope")] string scope)
     {
         
         return "SearchPlugin.SearchKnowledgeBase";
