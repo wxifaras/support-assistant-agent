@@ -1,7 +1,7 @@
 ﻿namespace support_assistant_agent_func.Models;
 
 public record KnowledgeBase
-{
+{    
     public string problem_id { get; set; }
     public string title { get; set; }
     public string description { get; set; }
@@ -20,4 +20,5 @@ public record KnowledgeBase
     public List<string> Scope { get; set; }
     public List<Attachment> attachments { get; set; }
     public List<Comment> comments { get; set; }
+    public string Summary { get; set; }
 }

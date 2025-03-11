@@ -8,6 +8,7 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure;
 using OpenAI.Embeddings;
 using Azure.Search.Documents.Models;
+using System;
 
 namespace support_assistant_agent_func.Services;
 
@@ -86,6 +87,21 @@ public class AzureAISearchService : IAzureAISearchService
         searchDocument["title"] = knowledgeBase.title;
         searchDocument["description"] = knowledgeBase.description;
         searchDocument["status"] = knowledgeBase.status;
+        searchDocument["priority"] = knowledgeBase.priority;
+        searchDocument["impact"] = knowledgeBase.impact;
+        searchDocument["category"] = knowledgeBase.category;
+        searchDocument["reported_date"] = knowledgeBase.reported_date;
+        searchDocument["resolved_date"] = knowledgeBase.resolved_date;
+        searchDocument["assigned_to"] = knowledgeBase.assigned_to;
+        searchDocument["reported_by"] = knowledgeBase.reported_by;
+        searchDocument["root_cause"] = knowledgeBase.root_cause;
+        searchDocument["workaround"] = knowledgeBase.workaround;
+        searchDocument["resolution"] = knowledgeBase.resolution;
+        searchDocument["related_incidents"] = knowledgeBase.related_incidents;
+        searchDocument["Scope"] = knowledgeBase.Scope;
+        searchDocument["attachments"] = knowledgeBase.attachments;
+        searchDocument["comments"] = knowledgeBase.comments;
+        searchDocument["Summary"] = knowledgeBase.Summary;
 
         var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
 
@@ -172,6 +188,72 @@ public class AzureAISearchService : IAzureAISearchService
                     new SearchableField("title") { IsFilterable = true, IsSortable = true },
                     new SearchableField("description") { IsFilterable = true, IsSortable = true },
                     new SearchableField("status") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("priority") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("impact") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("category") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("reported_date", SearchFieldDataType.DateTimeOffset) { IsKey = false, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SimpleField("resolved_date", SearchFieldDataType.DateTimeOffset) { IsKey = false, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SearchableField("assigned_to") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("reported_by") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("root_cause") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("workaround") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("resolution") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("related_incidents", SearchFieldDataType.Collection(SearchFieldDataType.String))
+                    {
+                        IsFilterable = true,
+                        IsFacetable = true
+                    },
+                    new SimpleField("Scope", SearchFieldDataType.Collection(SearchFieldDataType.String))
+                    {
+                        IsFilterable = true,
+                        IsFacetable = true
+                    },
+                    new ComplexField("attachments")
+                    {
+                        Fields =
+                        {
+                            new SimpleField("file_name", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsSortable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("file_url", SearchFieldDataType.String)
+                            {
+                                IsFilterable = false,
+                                IsSortable = false
+                            }
+                        }
+                    },
+                    new ComplexField("comments")
+                    {
+                        Fields =
+                        {
+                            new SimpleField("comment_id", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsSortable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("comment_text", SearchFieldDataType.String)
+                            {
+                                IsFilterable = true,
+                                IsSortable = true,
+                                IsFacetable = false
+                            },
+                            new SimpleField("commented_by", SearchFieldDataType.String)
+                            {
+                                IsFilterable = false,
+                                IsSortable = false
+                            },
+                            new SimpleField("commented_date", SearchFieldDataType.DateTimeOffset)
+                            {
+                                IsFilterable = false,
+                                IsSortable = false
+                            }
+                        }
+                    },
+                    new SearchableField("Summary") { IsFilterable = true, IsSortable = true },
                     new SearchField("vectorContent", SearchFieldDataType.Collection(SearchFieldDataType.Single))
                     {
                         IsSearchable = true,
