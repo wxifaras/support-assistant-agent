@@ -101,7 +101,7 @@ public class SupportAssistantFunction
         return new OkObjectResult(result.Content);
     }
 
-    private async Task<string> GetLlmSummary(List<Comment> comments)
+    private async Task<string> GetCommentsSummary(List<Comment> comments)
     {
         var summaryPrompt = CorePrompts.GetSummaryPrompt(comments);
 
