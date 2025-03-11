@@ -14,7 +14,7 @@ namespace support_assistant_agent_func.Services;
 public interface IAzureAISearchService
 {
     Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase);
-    Task SearchKnowledgeBaseAsync();
+    Task SearchKnowledgeBaseAsync(string scope, string query);
 }
 
 public class AzureAISearchService : IAzureAISearchService
@@ -78,7 +78,7 @@ public class AzureAISearchService : IAzureAISearchService
         throw new NotImplementedException();
     }
 
-    public async Task SearchKnowledgeBaseAsync()
+    public async Task SearchKnowledgeBaseAsync(string scope, string query)
     {
         throw new NotImplementedException();
     }
