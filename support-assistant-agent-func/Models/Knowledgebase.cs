@@ -20,5 +20,6 @@ public record Knowledgebase
     public List<string> Scope { get; set; }
     public List<Attachment> attachments { get; set; }
     public List<Comment> comments { get; set; }
-    public string Summary { get; set; }
+    public string Summary { get; set; } // LLM Summary
+    public IList<float> VectorContent { get; set; } = new List<float>();
 }

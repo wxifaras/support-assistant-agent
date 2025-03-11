@@ -6,6 +6,8 @@ using Microsoft.Extensions.Options;
 using support_assistant_agent_func.Models;
 using Azure.Search.Documents.Indexes.Models;
 using Azure;
+using OpenAI.Embeddings;
+using Azure.Search.Documents.Models;
 
 namespace support_assistant_agent_func.Services;
 
@@ -56,6 +58,14 @@ public class AzureAISearchService : IAzureAISearchService
         try
         {
             Response<SearchIndex> response = _searchIndexClient.GetIndex(_indexName);
+
+            var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
+
+            string textForEmbedding = $"title: {knowledgebase.title}, " +
+                                      $"description: {knowledgebase.description} ";
+
+            OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
+            knowledgebase.VectorContent = embedding.ToFloats().ToArray().ToList();
         }
         catch (RequestFailedException ex)
         {
