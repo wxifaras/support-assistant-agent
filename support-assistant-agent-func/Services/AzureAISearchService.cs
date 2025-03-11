@@ -11,7 +11,7 @@ namespace support_assistant_agent_func.Services;
 
 public interface IAzureAISearchService
 {
-    Task IndexKnowledgeBaseAsync();
+    Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase);
     Task SearchKnowledgeBaseAsync();
 }
 
@@ -50,7 +50,7 @@ public class AzureAISearchService : IAzureAISearchService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task IndexKnowledgeBaseAsync()
+    public async Task IndexKnowledgeBaseAsync(Knowledgebase knowledgebase)
     {
         // if the index doesn't exist, create it
         try

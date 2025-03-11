@@ -36,11 +36,26 @@ public class SupportAssistantFunction
     [Function("ProcessKnowledgeBase")]
     public async Task ProcessKnowledgeBase([BlobTrigger("%KnowledgebaseContainer%/{name}", Connection = "AzureStorageConnectionString")] Stream stream, string name)
     {
-        using var blobStreamReader = new StreamReader(stream);
-        var content = await blobStreamReader.ReadToEndAsync();
-        _logger.LogInformation($"C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}");
+        try
+        {
+            using var blobStreamReader = new StreamReader(stream);
+            var content = await blobStreamReader.ReadToEndAsync();
 
-        // TODO: Create / Index Data
+            _logger.LogInformation($"C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}");
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            var knowledgebase = JsonSerializer.Deserialize<Knowledgebase>(content, options);
+
+            // TODO: Create / Index Data
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing knowledge base");
+        }
     }
 
     [Function("SearchKnowledgeBase")]
