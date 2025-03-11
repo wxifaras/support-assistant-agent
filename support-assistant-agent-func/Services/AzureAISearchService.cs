@@ -81,13 +81,16 @@ public class AzureAISearchService : IAzureAISearchService
     {
         var searchDocument = new SearchDocument();
 
+        searchDocument["id"] = Guid.NewGuid().ToString();
         searchDocument["problem_id"] = knowledgeBase.problem_id;
         searchDocument["title"] = knowledgeBase.title;
+        searchDocument["description"] = knowledgeBase.description;
+        searchDocument["status"] = knowledgeBase.status;
 
         var embeddingClient = _azureOpenAIClient.GetEmbeddingClient(_azureOpenAIEmbeddingDeployment);
 
         string textForEmbedding = $"title: {knowledgeBase.title}, " +
-                                  $"description: {knowledgeBase.description} ";
+                                  $"description: {knowledgeBase.description}";
 
         OpenAIEmbedding embedding = await embeddingClient.GenerateEmbeddingAsync(textForEmbedding).ConfigureAwait(false);
 
@@ -165,7 +168,10 @@ public class AzureAISearchService : IAzureAISearchService
                 Fields =
                 {
                     new SimpleField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SearchableField("problem_id") { IsFilterable = true, IsSortable = true },
                     new SearchableField("title") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("description") { IsFilterable = true, IsSortable = true },
+                    new SearchableField("status") { IsFilterable = true, IsSortable = true },
                     new SearchField("vectorContent", SearchFieldDataType.Collection(SearchFieldDataType.Single))
                     {
                         IsSearchable = true,
