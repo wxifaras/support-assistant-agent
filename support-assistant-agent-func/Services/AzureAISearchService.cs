@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using support_assistant_agent_func.Models;
 using Azure.Search.Documents.Indexes.Models;
+using Azure;
 
 namespace support_assistant_agent_func.Services;
 
@@ -28,33 +29,42 @@ public class AzureAISearchService : IAzureAISearchService
     private readonly string _azureOpenAIKey;
     private readonly string _azureOpenAIEmbeddingDimensions;
     private readonly string _azureOpenAIEmbeddingDeployment;
-    private readonly SearchIndexClient _indexClient;
+    private readonly SearchIndexClient _searchIndexClient;
     private readonly AzureOpenAIClient _azureOpenAIClient;
-    private readonly SearchClient _searchClient;
-
 
     public AzureAISearchService(
        ILogger<AzureAISearchService> logger,
        IOptions<AzureAISearchOptions> azureAISearchOptions,
        IOptions<AzureOpenAIOptions> azureOpenAIOptions,
        SearchIndexClient indexClient,
-       AzureOpenAIClient azureOpenAIClient,
-       SearchClient searchClient)
+       AzureOpenAIClient azureOpenAIClient)
     {
         _indexName = azureAISearchOptions.Value.IndexName ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.IndexName));
         _azureOpenAIEndpoint = azureOpenAIOptions.Value.AzureOpenAIEndPoint ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEndPoint));
         _azureOpenAIKey = azureOpenAIOptions.Value.AzureOpenAIKey ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIKey));
         _azureOpenAIEmbeddingDimensions = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions));
         _azureOpenAIEmbeddingDeployment = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDeployment));
-        _indexClient = indexClient ?? throw new ArgumentNullException(nameof(indexClient));
+        _searchIndexClient = indexClient ?? throw new ArgumentNullException(nameof(indexClient));
         _azureOpenAIClient = azureOpenAIClient ?? throw new ArgumentNullException(nameof(azureOpenAIClient));
-        _searchClient = searchClient ?? throw new ArgumentNullException(nameof(searchClient));
-
+        
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     public async Task IndexKnowledgeBaseAsync()
     {
+        // if the index doesn't exist, create it
+        try
+        {
+            Response<SearchIndex> response = _searchIndexClient.GetIndex(_indexName);
+        }
+        catch (RequestFailedException ex)
+        {
+            if (ex.Status == 404)
+            {
+                _logger.LogInformation("Creating Index...");
+            }
+        }
+
         throw new NotImplementedException();
     }
 
@@ -131,7 +141,7 @@ public class AzureAISearchService : IAzureAISearchService
                 }
             };
 
-            await _indexClient.CreateOrUpdateIndexAsync(searchIndex).ConfigureAwait(false);
+            await _searchIndexClient.CreateOrUpdateIndexAsync(searchIndex).ConfigureAwait(false);
 
             _logger.LogInformation($"Completed creating index {searchIndex}");
         }
