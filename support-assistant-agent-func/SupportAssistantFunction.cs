@@ -51,7 +51,7 @@ public class SupportAssistantFunction
 
             var knowledgeBase = JsonSerializer.Deserialize<KnowledgeBase>(content, options);
 
-            knowledgeBase!.Summary = await GetLlmSummary(knowledgeBase.comments);
+            knowledgeBase!.Summary = await GetCommentsSummary(knowledgeBase.comments);
 
             await _azureAISearchService.IndexKnowledgeBaseAsync(knowledgeBase);
         }
