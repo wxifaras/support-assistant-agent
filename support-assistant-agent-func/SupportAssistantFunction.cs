@@ -41,6 +41,7 @@ public class SupportAssistantFunction
         _logger.LogInformation($"C# Blob trigger function Processed blob\n Name: {name} \n Data: {content}");
 
         // TODO: Create / Index Data
+        await _azureAISearchService.IndexKnowledgeBaseAsync();
     }
 
     [Function("SearchKnowledgeBase")]

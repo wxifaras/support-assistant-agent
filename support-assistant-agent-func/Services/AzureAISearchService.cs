@@ -62,6 +62,8 @@ public class AzureAISearchService : IAzureAISearchService
             if (ex.Status == 404)
             {
                 _logger.LogInformation("Creating Index...");
+
+                await CreateAISearchIndexAsync();
             }
         }
 
@@ -123,15 +125,21 @@ public class AzureAISearchService : IAzureAISearchService
                         {
                             ContentFields =
                             {
-                                new SemanticField("test"),
+                                new SemanticField("title"),
+                                new SemanticField("description"),
+                            },
+                            TitleField = new SemanticField(fieldName: "title"),
+                            KeywordsFields =
+                            {
+                                new SemanticField("title")
                             }
                         })
                     }
                 },
                 Fields =
                 {
-                    new SimpleField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true },
-                    new SearchableField("test") { IsFilterable = true, IsSortable = true },
+                    new SimpleField("id", SearchFieldDataType.String) { IsKey = true, IsFilterable = true, IsSortable = true, IsFacetable = true },
+                    new SearchableField("title") { IsFilterable = true, IsSortable = true },
                     new SearchField("vectorContent", SearchFieldDataType.Collection(SearchFieldDataType.Single))
                     {
                         IsSearchable = true,
