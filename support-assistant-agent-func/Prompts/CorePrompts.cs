@@ -14,8 +14,7 @@ public static class CorePrompts
             as any possible workarounds and solutions.
 
             You must only use the data you receive from the SearchPlugin. If there are no results, you must explain to the user that you did not find a match
-            in the knowledge base that reflects the issue thy are asking about. Politely ask them if they can provide additional information to help you.
-";
+            in the knowledge base that reflects the issue thy are asking about. Politely ask them if they can provide additional information to help you.";
     
     public static string GetSummaryPrompt(List<Comment> comments)
     {
