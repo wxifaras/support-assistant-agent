@@ -70,9 +70,16 @@ public class AzureAISearchService : IAzureAISearchService
             }
         }
 
-        SearchDocument searchDocument = await GetSearchDocumentAsync(knowledgeBase);
+        var searchDocument = await GetSearchDocumentAsync(knowledgeBase);
+
+        var actions = new List<IndexDocumentsAction<SearchDocument>>
+        {
+            IndexDocumentsAction.MergeOrUpload(searchDocument)
+        };
+
         var searchClient = _searchIndexClient.GetSearchClient(_indexName);
-        var indexResponse = await searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Upload(new List<SearchDocument> { searchDocument }));
+        var batch = IndexDocumentsBatch.Create(actions.ToArray());
+        var indexResponse = await searchClient.IndexDocumentsAsync(batch);
 
         return indexResponse.GetRawResponse().Status.ToString();
     }
@@ -81,7 +88,7 @@ public class AzureAISearchService : IAzureAISearchService
     {
         var searchDocument = new SearchDocument();
 
-        searchDocument["id"] = Guid.NewGuid().ToString();
+        searchDocument["id"] = knowledgeBase.problem_id; ;
         searchDocument["problem_id"] = knowledgeBase.problem_id;
         searchDocument["title"] = knowledgeBase.title;
         searchDocument["description"] = knowledgeBase.description;
