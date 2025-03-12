@@ -8,14 +8,13 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure;
 using OpenAI.Embeddings;
 using Azure.Search.Documents.Models;
-using System;
 
 namespace support_assistant_agent_func.Services;
 
 public interface IAzureAISearchService
 {
     Task<string> IndexKnowledgeBaseAsync(KnowledgeBase knowledgeBase);
-    Task SearchKnowledgeBaseAsync(string scope, string query);
+    Task<List<SearchDocument>> SearchKnowledgeBaseAsync(string scope, string query);
 }
 
 public class AzureAISearchService : IAzureAISearchService
@@ -115,9 +114,69 @@ public class AzureAISearchService : IAzureAISearchService
         return searchDocument;
     }
 
-    public async Task SearchKnowledgeBaseAsync(string scope, string query)
+    public async Task<List<SearchDocument>> SearchKnowledgeBaseAsync(string scope, string query)
     {
-        throw new NotImplementedException();
+        // Perform the vector similarity search  
+        var searchOptions = new SearchOptions
+        {
+            Filter = $"Scope/any(s: search.in(s, '{scope.Replace(" ", "")}', ','))",
+            Size = 3, // number of results to return
+            Select = { "title", "problem_id", "description", "status", "root_cause", "workaround", "resolution", "Summary" },
+            IncludeTotalCount = true
+        };
+
+        // configure vector search
+        searchOptions.VectorSearch = new()
+        {
+            Queries = {
+                new VectorizableTextQuery(text: query)
+                {
+                    KNearestNeighborsCount = 5,
+                    Fields = { "vectorContent" },
+                    Exhaustive = false
+                },
+            },
+        };
+
+        // configure semantic search
+        searchOptions.QueryType = SearchQueryType.Semantic;
+        searchOptions.SemanticSearch = new SemanticSearchOptions
+        {
+            SemanticConfigurationName = semanticSearchConfig,
+            QueryCaption = new QueryCaption(QueryCaptionType.Extractive),
+            QueryAnswer = new QueryAnswer(QueryAnswerType.Extractive),
+        };
+
+        SearchClient searchClient = _searchIndexClient.GetSearchClient(_indexName);
+        SearchResults<SearchDocument> response = await searchClient.SearchAsync<SearchDocument>(query, searchOptions);
+
+        var knowledgeBaseResultsList = new List<SearchDocument>();
+
+        await foreach (SearchResult<SearchDocument> result in response.GetResultsAsync())
+        {
+            _logger.LogInformation($"Reranker Score: {result.SemanticSearch.RerankerScore}\n");
+            _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
+            _logger.LogInformation($"Description: {result.Document["description"]}");
+            _logger.LogInformation($"Status: {result.Document["status"]}");
+            _logger.LogInformation($"Root Cause: {result.Document["root_cause"]}");
+            _logger.LogInformation($"Workaround: {result.Document["workaround"]}");
+            _logger.LogInformation($"Resolution: {result.Document["resolution"]}");
+            _logger.LogInformation($"Title: {result.Document["title"]}");
+            _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
+            _logger.LogInformation($"Title: {result.Document["title"]}");
+            _logger.LogInformation($"Summary: {result.Document["Summary"]}");
+
+            if (result.SemanticSearch?.Captions?.Count > 0)
+            {
+                QueryCaptionResult firstCaption = result.SemanticSearch.Captions[0];
+                _logger.LogInformation($"First Caption Highlights: {firstCaption.Highlights}");
+                _logger.LogInformation($"First Caption Text: {firstCaption.Text}");
+            }
+
+            knowledgeBaseResultsList.Add(result.Document);
+        }
+
+        return knowledgeBaseResultsList;
     }
     
     private async Task CreateAISearchIndexAsync()

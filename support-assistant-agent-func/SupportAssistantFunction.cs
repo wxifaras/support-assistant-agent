@@ -93,6 +93,8 @@ public class SupportAssistantFunction
         chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
         chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
 
+        _logger.LogInformation($"searchRequest:{searchRequest}");
+
         ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
               chatHistory,
               executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
