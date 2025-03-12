@@ -43,8 +43,8 @@ public class AzureAISearchService : IAzureAISearchService
        AzureOpenAIClient azureOpenAIClient)
     {
         _indexName = azureAISearchOptions.Value.IndexName ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.IndexName));
-        string rerankerThreshold = azureAISearchOptions.Value.RerankerThreshold ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.RerankerThreshold));
-        _rerankerThreshold = Double.Parse(rerankerThreshold);
+        var rerankerThreshold = azureAISearchOptions.Value.RerankerThreshold ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.RerankerThreshold));
+        _rerankerThreshold = double.Parse(rerankerThreshold);
         _azureOpenAIEndpoint = azureOpenAIOptions.Value.AzureOpenAIEndPoint ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEndPoint));
         _azureOpenAIKey = azureOpenAIOptions.Value.AzureOpenAIKey ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIKey));
         _azureOpenAIEmbeddingDimensions = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions));
