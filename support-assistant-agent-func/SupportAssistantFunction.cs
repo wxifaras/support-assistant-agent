@@ -12,6 +12,9 @@ using System.Text.Json;
 
 namespace support_assistant_agent_func;
 
+/// <summary>
+/// Provides functions for processing and searching a support knowledge base.
+/// </summary>
 public class SupportAssistantFunction
 {
     private readonly ILogger<SupportAssistantFunction> _logger;
@@ -34,8 +37,14 @@ public class SupportAssistantFunction
         _chatHistoryManager = chatHistoryManager;
     }
 
+    /// <summary>
+    /// Processes a knowledge base file uploaded to blob storage.
+    /// </summary>
+    /// <param name="stream">The stream containing the knowledge base data.</param>
+    /// <param name="name">The name of the blob.</param>
+    /// <returns>An action result indicating success or failure.</returns>
     [Function("ProcessKnowledgeBase")]
-    public async Task ProcessKnowledgeBase([BlobTrigger("%KnowledgebaseContainer%/{name}", Connection = "AzureStorageConnectionString")] Stream stream, string name)
+    public async Task<IActionResult> ProcessKnowledgeBase([BlobTrigger("%KnowledgebaseContainer%/{name}", Connection = "AzureStorageConnectionString")] Stream stream, string name)
     {
         try
         {
@@ -54,17 +63,42 @@ public class SupportAssistantFunction
             knowledgeBase!.Summary = await GetCommentsSummary(knowledgeBase.comments);
 
             await _azureAISearchService.IndexKnowledgeBaseAsync(knowledgeBase);
+            return new OkObjectResult($"Successfully processed knowledge base: {name}");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing knowledge base");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
     }
 
+    /// <summary>
+    /// Searches the knowledge base for information related to the user's query.
+    /// </summary>
+    /// <param name="req">The HTTP request containing the search parameters.</param>
+    /// <returns>A response containing the search results.</returns>
+    /// <remarks>
+    /// The request body should be a JSON object with the following structure:
+    /// {
+    ///   "SessionId": "",
+    ///   "Scope": "",
+    ///   "SearchText": ""
+    /// }
+    /// 
+    /// Where:
+    ///   - SessionId: A unique identifier for the user's session.
+    ///   - Scope: The scope, which is used as a security filter in the search
+    ///   - SearchText: The user's query or search terms.
+    /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
     [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
     {
+        if (req == null)
+        {
+            return new BadRequestObjectResult("Request cannot be null");
+        }
+
         var requestBody = string.Empty;
         using (var streamReader = new StreamReader(req.Body))
         {
