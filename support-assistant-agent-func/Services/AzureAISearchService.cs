@@ -27,6 +27,7 @@ public class AzureAISearchService : IAzureAISearchService
     const string semanticSearchConfig = "knowledgebase-semantic-config";
 
     private readonly string _indexName;
+    private readonly double _rerankerThreshold;
     private readonly string _azureOpenAIEndpoint;
     private readonly string _azureOpenAIKey;
     private readonly string _azureOpenAIEmbeddingDimensions;
@@ -42,6 +43,8 @@ public class AzureAISearchService : IAzureAISearchService
        AzureOpenAIClient azureOpenAIClient)
     {
         _indexName = azureAISearchOptions.Value.IndexName ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.IndexName));
+        string rerankerThreshold = azureAISearchOptions.Value.RerankerThreshold ?? throw new ArgumentNullException(nameof(azureAISearchOptions.Value.RerankerThreshold));
+        _rerankerThreshold = Double.Parse(rerankerThreshold);
         _azureOpenAIEndpoint = azureOpenAIOptions.Value.AzureOpenAIEndPoint ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEndPoint));
         _azureOpenAIKey = azureOpenAIOptions.Value.AzureOpenAIKey ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIKey));
         _azureOpenAIEmbeddingDimensions = azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIEmbeddingDimensions));
@@ -154,26 +157,30 @@ public class AzureAISearchService : IAzureAISearchService
 
         await foreach (SearchResult<SearchDocument> result in response.GetResultsAsync())
         {
-            _logger.LogInformation($"Reranker Score: {result.SemanticSearch.RerankerScore}\n");
-            _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
-            _logger.LogInformation($"Description: {result.Document["description"]}");
-            _logger.LogInformation($"Status: {result.Document["status"]}");
-            _logger.LogInformation($"Root Cause: {result.Document["root_cause"]}");
-            _logger.LogInformation($"Workaround: {result.Document["workaround"]}");
-            _logger.LogInformation($"Resolution: {result.Document["resolution"]}");
-            _logger.LogInformation($"Title: {result.Document["title"]}");
-            _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
-            _logger.LogInformation($"Title: {result.Document["title"]}");
-            _logger.LogInformation($"Summary: {result.Document["Summary"]}");
-
-            if (result.SemanticSearch?.Captions?.Count > 0)
+            // add the document result if it meets the reranker score threshold
+            if (result.SemanticSearch.RerankerScore >= _rerankerThreshold)
             {
-                QueryCaptionResult firstCaption = result.SemanticSearch.Captions[0];
-                _logger.LogInformation($"First Caption Highlights: {firstCaption.Highlights}");
-                _logger.LogInformation($"First Caption Text: {firstCaption.Text}");
-            }
+                _logger.LogInformation($"Reranker Score: {result.SemanticSearch.RerankerScore}\n");
+                _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
+                _logger.LogInformation($"Description: {result.Document["description"]}");
+                _logger.LogInformation($"Status: {result.Document["status"]}");
+                _logger.LogInformation($"Root Cause: {result.Document["root_cause"]}");
+                _logger.LogInformation($"Workaround: {result.Document["workaround"]}");
+                _logger.LogInformation($"Resolution: {result.Document["resolution"]}");
+                _logger.LogInformation($"Title: {result.Document["title"]}");
+                _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
+                _logger.LogInformation($"Title: {result.Document["title"]}");
+                _logger.LogInformation($"Summary: {result.Document["Summary"]}");
 
-            knowledgeBaseResultsList.Add(result.Document);
+                if (result.SemanticSearch?.Captions?.Count > 0)
+                {
+                    QueryCaptionResult firstCaption = result.SemanticSearch.Captions[0];
+                    _logger.LogInformation($"First Caption Highlights: {firstCaption.Highlights}");
+                    _logger.LogInformation($"First Caption Text: {firstCaption.Text}");
+                }
+
+                knowledgeBaseResultsList.Add(result.Document);
+            }
         }
 
         return knowledgeBaseResultsList;

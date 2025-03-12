@@ -14,4 +14,7 @@ public class AzureAISearchOptions
 
     [Required]
     public string SearchAdminKey { get; set; }
+
+    [Required]
+    public string RerankerThreshold { get; set; }
 }
