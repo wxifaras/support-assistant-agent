@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Azure.Search.Documents.Models;
+using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Services;
 using System;
 using System.Collections.Generic;
@@ -25,10 +27,11 @@ public class SearchPlugin
 
     [KernelFunction]
     [Description("Searches the knowledge base for solutions to a support ticket.")]
-    public async Task<string> SearchKnowledgeBase(
+    public async Task<List<SearchDocument>> SearchKnowledgeBase(
     [Description("Search Text")] string searchText, [Description("The Scope")] string scope)
     {
-        
-        return "SearchPlugin.SearchKnowledgeBase";
+        List<SearchDocument> knowledgeBaseList = await _azureAISearchService.SearchKnowledgeBaseAsync(scope, searchText);
+
+        return knowledgeBaseList;
     }
 }
