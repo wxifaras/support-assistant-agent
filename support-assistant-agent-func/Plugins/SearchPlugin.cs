@@ -1,14 +1,8 @@
 ﻿using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Services;
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace support_assistant_agent_func.Plugins;
 
@@ -30,7 +24,10 @@ public class SearchPlugin
     public async Task<List<SearchDocument>> SearchKnowledgeBase(
     [Description("Search Text")] string searchText, [Description("The Scope")] string scope)
     {
-        List<SearchDocument> knowledgeBaseList = await _azureAISearchService.SearchKnowledgeBaseAsync(scope, searchText);
+        _logger.LogInformation($"SearchPlugin.SearchKnowledgeBase invoked. searchText:'{searchText}' in scope:'{scope}'");
+        var knowledgeBaseList = await _azureAISearchService.SearchKnowledgeBaseAsync(scope, searchText);
+
+        _logger.LogInformation($"SearchPlugin.SearchKnowledgeBase found {knowledgeBaseList.Count} results");
 
         return knowledgeBaseList;
     }

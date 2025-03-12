@@ -8,7 +8,6 @@ using Azure.Search.Documents.Indexes.Models;
 using Azure;
 using OpenAI.Embeddings;
 using Azure.Search.Documents.Models;
-using System;
 
 namespace support_assistant_agent_func.Services;
 
@@ -174,27 +173,6 @@ public class AzureAISearchService : IAzureAISearchService
                 _logger.LogInformation($"First Caption Text: {firstCaption.Text}");
             }
 
-            /*KnowledgeBase knowledgeBase = new KnowledgeBase
-            {
-                problem_id = result.Document["problem_id"]?.ToString() ?? string.Empty,
-                title = result.Document["title"]?.ToString() ?? string.Empty,
-                description = result.Document["description"]?.ToString() ?? string.Empty,
-                status = result.Document["status"]?.ToString() ?? string.Empty,
-                priority = result.Document["priority"]?.ToString() ?? string.Empty,
-                impact = result.Document["impact"]?.ToString() ?? string.Empty,
-                category = result.Document["category"]?.ToString() ?? string.Empty,
-                reported_date = result.Document["reported_date"] as DateTime? ?? DateTime.MinValue,
-                resolved_date = result.Document["resolved_date"] as DateTime? ?? DateTime.MinValue,
-                assigned_to = result.Document["assigned_to"]?.ToString() ?? string.Empty,
-                reported_by = result.Document["reported_by"]?.ToString() ?? string.Empty,
-                root_cause = result.Document["root_cause"]?.ToString() ?? string.Empty,
-                workaround = result.Document["workaround"]?.ToString() ?? string.Empty,
-                resolution = result.Document["resolution"]?.ToString() ?? string.Empty,
-                related_incidents = result.Document["related_incidents"] as List<string> ?? new List<string>(),
-                Scope = result.Document["Scope"] as List<string> ?? new List<string>(),
-                attachments = result.Document["attachments"] as List<Attachment> ?? new List<Attachment>(),
-                Summary = result.Document["Summary"]?.ToString() ?? string.Empty,
-            };*/
             knowledgeBaseResultsList.Add(result.Document);
         }
 
