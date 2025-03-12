@@ -165,7 +165,7 @@ public class AzureAISearchService : IAzureAISearchService
         await foreach (SearchResult<SearchDocument> result in response.GetResultsAsync())
         {
             // add the document result if it meets the reranker score threshold
-            if (result.SemanticSearch.RerankerScore >= _rerankerThreshold)
+            if (result.SemanticSearch!.RerankerScore >= _rerankerThreshold)
             {
                 _logger.LogInformation($"Reranker Score: {result.SemanticSearch.RerankerScore}\n");
                 _logger.LogInformation($"Problem ID: {result.Document["problem_id"]}");
