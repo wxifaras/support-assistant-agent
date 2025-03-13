@@ -13,8 +13,10 @@ public static class CorePrompts
             of this information and clearly respond to the user with a summary of the problem, what was discussed between the user and tech support, as well
             as any possible workarounds and solutions.
 
-            You must only use the data you receive from the SearchPlugin. If there are no results, you must explain to the user that you did not find a match
-            in the knowledge base that reflects the issue thy are asking about. Politely ask them if they can provide additional information to help you.";
+            ### GUIDELINES ###
+            - You must only use the data you receive from the SearchPlugin.
+            - If there are no results returned from the SearchPlugin, you must explain to the user that you did not find a match in the knowledge base that reflects the issue they are asking about.
+              You will then politely ask them if they can provide additional information to help you.";
     
     public static string GetSummaryPrompt(List<Comment> comments)
     {

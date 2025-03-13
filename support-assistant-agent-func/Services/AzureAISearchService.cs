@@ -91,7 +91,7 @@ public class AzureAISearchService : IAzureAISearchService
     {
         var searchDocument = new SearchDocument();
 
-        searchDocument["id"] = knowledgeBase.problem_id; ;
+        searchDocument["id"] = knowledgeBase.problem_id;
         searchDocument["problem_id"] = knowledgeBase.problem_id;
         searchDocument["title"] = knowledgeBase.title;
         searchDocument["description"] = knowledgeBase.description;
