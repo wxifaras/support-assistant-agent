@@ -126,6 +126,7 @@ public class SupportAssistantFunction
         var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
         chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
         chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
+        chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
 
         _logger.LogInformation($"searchRequest:{searchRequest}");
 
@@ -134,8 +135,25 @@ public class SupportAssistantFunction
               executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
               kernel: _kernel);
 
+        if (searchRequest.EvalRequired == "true")
+        {
+            var response = await _kernel.InvokeAsync<Object>(
+                pluginName: "SearchPlugin",
+                functionName: "EvaluateSearchResult",
+                arguments: new KernelArguments
+                {
+            { "searchText", searchRequest.SearchText },
+            { "llmresult", result.Content },
+            { "pId", searchRequest.ProblemId }
+                }
+            );
+
+            return new OkObjectResult(response);
+        }
+
         return new OkObjectResult(result.Content);
     }
+
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)
     {

@@ -1,0 +1,50 @@
+    {
+        "problem_id": "PRB987654",
+        "question_and_answer":[
+        {
+          "question": "How can we prevent the User Authentication microservice from timing out when processing login requests?",
+          "answer": "To prevent the User Authentication microservice from timing out when processing login requests, you can optimize database queries and increase the connection pool size. Additionally, increasing the timeout settings temporarily can help as a workaround to reduce the number of failed requests."
+        }
+        ]
+    },   
+    {
+        "problem_id": "PRB654321",
+        "question_and_answer":[
+        {
+            "question": "Are there any known solutions to fix the data synchronization errors between Deloitte Intela and the central database that are affecting data accuracy and reporting?",
+            "answer": "Yes, there are known solutions to fix the data synchronization errors between Deloitte Intela and the central database. As a workaround, you can manually enter and verify the data until the issue is resolved. For a more permanent resolution, it's recommended to implement a more robust synchronization mechanism and optimize the network settings."
+        }
+        ]
+    },
+    {
+        "problem_id": "PRB123789",
+        "question_and_answer":[
+        {
+            "question": "How can I reduce lag and improve responsiveness when navigating the Deloitte Intela dashboard to perform tasks more efficiently?" ,
+            "answer":  "To reduce lag and improve responsiveness when navigating the Deloitte Intela dashboard, advise users to clear their browser cache and use the application in incognito mode. Additionally, optimize the front-end code and reduce the memory footprint for a long term solution."
+        }
+        ]
+    },
+    {
+        "problem_id":"PRB456123",
+        "question_and_answer":[
+        {
+            "question": "How can users export reports from Deloitte Intela when the export process fails due to insufficient permissions?" ,
+            "answer":  "Users can request manual exports to get the reports they need. To permanently resolve the issue, update the permission settings to allow exports and then test the functionality to ensure it works properly."
+        }
+        ]
+    },
+    {
+        "problem_id": "PRB789456",
+        "question_and_answer":[
+        {
+              "question": "What steps can I take to fix the authentication error preventing users from logging into Deloitte Intela?",
+              "answer": "There is no workaround and would need immediate resolution. To resolve this issue, the user would need to renew and install the SSL certificate on the authentication server."
+        }
+        ]
+    }
+
+
+
+
+

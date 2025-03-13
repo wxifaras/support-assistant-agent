@@ -75,7 +75,11 @@ builder.Services.AddSingleton<Kernel>(provider =>
     var searchPlugin = new SearchPlugin(azureAISearchService, logger);
     kernelBuilder.Plugins.AddFromObject(searchPlugin, "SearchPlugin");
 
-    return kernelBuilder.Build();
+    var kernel = kernelBuilder.Build();
+
+    searchPlugin.SetKernel(kernel);
+
+    return kernel;
 });
 
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
