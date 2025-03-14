@@ -130,37 +130,26 @@ public class SupportAssistantFunction
       
         _logger.LogInformation($"searchRequest:{searchRequest}");
 
+        var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
+        chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
+        chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
+        chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
+
+        ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
+        chatHistory,
+        executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+        kernel: _kernel);
+
         if (searchRequest.EvalRequired == "true")
-        {
-            var chatHistory = new ChatHistory();
-            chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
-            chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
-            //chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
-
-            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
-            chatHistory,
-            executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
-            kernel: _kernel);
-
+        {          
             var response = await _evaluationUtility.EvaluateSearchResult(searchRequest.SearchText, searchRequest.ProblemId, result.Content);
 
             return new OkObjectResult(response);
         }
         else
         {
-            var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
-            chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
-            chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
-            chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
-
-            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
-            chatHistory,
-            executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
-            kernel: _kernel);
-
             return new OkObjectResult(result.Content);
         }
- 
     }
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)
