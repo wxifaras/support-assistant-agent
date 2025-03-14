@@ -21,6 +21,4 @@ public record KnowledgeBase
     public List<Attachment> attachments { get; set; }
     public List<Comment> comments { get; set; }
     public string? Summary { get; set; }
-
-    public string? Evaluation { get; set; }
 }

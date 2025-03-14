@@ -12,6 +12,8 @@ using support_assistant_agent_func.Plugins;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using Azure;
+using static support_assistant_agent_func.Utility.EvaluationUtility;
+using support_assistant_agent_func.Utility;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -89,6 +91,13 @@ builder.Services.AddSingleton<IChatHistoryManager>(sp =>
 {
     var sysPrompt = CorePrompts.GetSystemPrompt();
     return new ChatHistoryManager(sysPrompt);
+});
+
+builder.Services.AddSingleton<IEvaluationUtility>(sp =>
+{
+    var azureOpenAIClient = sp.GetRequiredService<AzureOpenAIClient>();
+    var azureOpenAIOptions = sp.GetRequiredService<IOptions<AzureOpenAIOptions>>();
+    return new EvaluationUtility(azureOpenAIClient, azureOpenAIOptions);
 });
 
 builder.Build().Run();

@@ -9,6 +9,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
+using support_assistant_agent_func.Utility;
 
 namespace support_assistant_agent_func;
 
@@ -22,19 +23,22 @@ public class SupportAssistantFunction
     private readonly Kernel _kernel;
     private readonly IChatCompletionService _chat;
     private readonly IChatHistoryManager _chatHistoryManager;
+    private readonly IEvaluationUtility _evaluationUtility;
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
         IAzureAISearchService azureAISearchService,
         Kernel kernel,
         IChatCompletionService chat,
-        IChatHistoryManager chatHistoryManager)
+        IChatHistoryManager chatHistoryManager,
+        IEvaluationUtility evaluationUtility)
     {
         _logger = logger;
         _azureAISearchService = azureAISearchService;
         _kernel = kernel;
         _chat = chat;
         _chatHistoryManager = chatHistoryManager;
+        _evaluationUtility = evaluationUtility;
     }
 
     /// <summary>
@@ -123,37 +127,41 @@ public class SupportAssistantFunction
         }
 
         var sessionId = searchRequest.SessionId;
-        var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
-        chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
-        chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
-        chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
-
+      
         _logger.LogInformation($"searchRequest:{searchRequest}");
-
-        ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
-              chatHistory,
-              executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
-              kernel: _kernel);
 
         if (searchRequest.EvalRequired == "true")
         {
-            var response = await _kernel.InvokeAsync<Object>(
-                pluginName: "SearchPlugin",
-                functionName: "EvaluateSearchResult",
-                arguments: new KernelArguments
-                {
-            { "searchText", searchRequest.SearchText },
-            { "llmresult", result.Content },
-            { "pId", searchRequest.ProblemId }
-                }
-            );
+            var chatHistory = new ChatHistory();
+            chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
+            chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
+            //chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
+
+            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
+            chatHistory,
+            executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+            kernel: _kernel);
+
+            var response = await _evaluationUtility.EvaluateSearchResult(searchRequest.SearchText, searchRequest.ProblemId, result.Content);
 
             return new OkObjectResult(response);
         }
+        else
+        {
+            var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
+            chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
+            chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
+            chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
 
-        return new OkObjectResult(result.Content);
+            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
+            chatHistory,
+            executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+            kernel: _kernel);
+
+            return new OkObjectResult(result.Content);
+        }
+ 
     }
-
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)
     {
