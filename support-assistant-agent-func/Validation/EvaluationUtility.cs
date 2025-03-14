@@ -4,7 +4,6 @@ using OpenAI.Chat;
 using support_assistant_agent_func.Models;
 using System.Text.Json;
 
-
 namespace support_assistant_agent_func.Utility
 {
     public interface IEvaluationUtility
@@ -14,7 +13,6 @@ namespace support_assistant_agent_func.Utility
 
     class EvaluationUtility: IEvaluationUtility
     {
-
         private readonly AzureOpenAIClient _azureOpenAIClient;
         private readonly IOptions<AzureOpenAIOptions> _azureOpenAIOptions;
         private readonly string _azureOpenAIGPTDeployment;
