@@ -9,7 +9,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
-using support_assistant_agent_func.Utility;
+using support_assistant_agent_func.Validation;
 
 namespace support_assistant_agent_func;
 
@@ -23,7 +23,7 @@ public class SupportAssistantFunction
     private readonly Kernel _kernel;
     private readonly IChatCompletionService _chat;
     private readonly IChatHistoryManager _chatHistoryManager;
-    private readonly IEvaluationUtility _evaluationUtility;
+    private readonly IValidationUtility _validationUtility;
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
@@ -31,14 +31,14 @@ public class SupportAssistantFunction
         Kernel kernel,
         IChatCompletionService chat,
         IChatHistoryManager chatHistoryManager,
-        IEvaluationUtility evaluationUtility)
+        IValidationUtility validationUtility)
     {
         _logger = logger;
         _azureAISearchService = azureAISearchService;
         _kernel = kernel;
         _chat = chat;
         _chatHistoryManager = chatHistoryManager;
-        _evaluationUtility = evaluationUtility;
+        _validationUtility = validationUtility;
     }
 
     /// <summary>
@@ -86,13 +86,17 @@ public class SupportAssistantFunction
     /// {
     ///   "SessionId": "",
     ///   "Scope": "",
-    ///   "SearchText": ""
+    ///   "SearchText": "",
+    ///   "EvalRequired": "",
+    ///   "ProblemId":""
     /// }
     /// 
     /// Where:
     ///   - SessionId: A unique identifier for the user's session.
     ///   - Scope: The scope, which is used as a security filter in the search
     ///   - SearchText: The user's query or search terms.
+    ///   - PrombleId: The document for which the search is being performed.
+    ///   - EvalRequired: A true/false flag indicating whether validation is required.
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
@@ -142,7 +146,7 @@ public class SupportAssistantFunction
 
         if (searchRequest.EvalRequired == "true")
         {          
-            var response = await _evaluationUtility.EvaluateSearchResult(searchRequest.SearchText, searchRequest.ProblemId, result.Content);
+            var response = await _validationUtility.EvaluateSearchResult(searchRequest.SearchText, searchRequest.ProblemId, result.Content);
 
             return new OkObjectResult(response);
         }

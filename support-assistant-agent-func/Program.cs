@@ -1,3 +1,4 @@
+using Azure;
 using Azure.AI.OpenAI;
 using Azure.Search.Documents.Indexes;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -11,9 +12,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Plugins;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
-using Azure;
-using static support_assistant_agent_func.Utility.EvaluationUtility;
-using support_assistant_agent_func.Utility;
+using support_assistant_agent_func.Validation;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -93,11 +92,11 @@ builder.Services.AddSingleton<IChatHistoryManager>(sp =>
     return new ChatHistoryManager(sysPrompt);
 });
 
-builder.Services.AddSingleton<IEvaluationUtility>(sp =>
+builder.Services.AddSingleton<IValidationUtility>(sp =>
 {
     var azureOpenAIClient = sp.GetRequiredService<AzureOpenAIClient>();
     var azureOpenAIOptions = sp.GetRequiredService<IOptions<AzureOpenAIOptions>>();
-    return new EvaluationUtility(azureOpenAIClient, azureOpenAIOptions);
+    return new ValidationUtility(azureOpenAIClient, azureOpenAIOptions);
 });
 
 builder.Build().Run();
