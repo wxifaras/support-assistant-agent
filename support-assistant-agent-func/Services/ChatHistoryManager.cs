@@ -3,17 +3,9 @@ using System.Collections.Concurrent;
 
 namespace support_assistant_agent_func.Services;
 
-public interface IChatHistoryManager
-{
-    ChatHistory GetOrCreateChatHistory(string sessionId);
-    void CleanupOldHistories();
-    bool ClearChatHistory(string sessionId);
-}
-
 public class ChatHistoryManager : IChatHistoryManager
 {
-    private readonly ConcurrentDictionary<string, (ChatHistory History, DateTime LastAccessed)> _chatHistories
-        = new ConcurrentDictionary<string, (ChatHistory, DateTime)>();
+    private readonly ConcurrentDictionary<string, (ChatHistory History, DateTime LastAccessed)> _chatHistories = new();
     private readonly string _systemMessage;
     private readonly TimeSpan _expirationTime = TimeSpan.FromHours(1); // Adjust as needed
 
@@ -22,15 +14,16 @@ public class ChatHistoryManager : IChatHistoryManager
         _systemMessage = systemMessage;
     }
 
-    public ChatHistory GetOrCreateChatHistory(string sessionId)
+    public async Task<ChatHistory> GetOrCreateChatHistoryAsync(string sessionId)
     {
-        var (history, _) = _chatHistories.AddOrUpdate(
-            sessionId,
-            _ => (CreateNewChatHistory(), DateTime.UtcNow),
-            (_, old) => (old.History, DateTime.UtcNow)
-        );
-
-        return history;
+        return await Task.Run(() =>
+        {
+            return _chatHistories.AddOrUpdate(
+                sessionId,
+                _ => (CreateNewChatHistory(), DateTime.UtcNow),
+                (_, old) => (old.History, DateTime.UtcNow)
+            ).History;
+        });
     }
 
     private ChatHistory CreateNewChatHistory()
@@ -52,10 +45,13 @@ public class ChatHistoryManager : IChatHistoryManager
         }
     }
 
-    // added method to allow the removal of a ChatHistory for a given session,
-    // can can be helpful when testing how the chathistory is impacting the responses
     public bool ClearChatHistory(string sessionId)
     {
         return _chatHistories.TryRemove(sessionId, out _);
+    }
+
+    Task IChatHistoryManager.SaveChatHistoryAsync(string sessionId, ChatHistory chatHistory)
+    {
+        throw new NotImplementedException();
     }
 }

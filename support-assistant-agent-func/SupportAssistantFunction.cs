@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using support_assistant_agent_func.Extensions;
 using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
@@ -22,19 +24,22 @@ public class SupportAssistantFunction
     private readonly Kernel _kernel;
     private readonly IChatCompletionService _chat;
     private readonly IChatHistoryManager _chatHistoryManager;
+    private readonly bool _useCosmosDbChatHistory;
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
         IAzureAISearchService azureAISearchService,
         Kernel kernel,
         IChatCompletionService chat,
-        IChatHistoryManager chatHistoryManager)
+        IChatHistoryManager chatHistoryManager,
+        IConfiguration configuration)
     {
         _logger = logger;
         _azureAISearchService = azureAISearchService;
         _kernel = kernel;
         _chat = chat;
         _chatHistoryManager = chatHistoryManager;
+        _useCosmosDbChatHistory = bool.TryParse(configuration["UseCosmosDbChatHistory"], out bool result) ? result : false;
     }
 
     /// <summary>
@@ -122,10 +127,11 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request body cannot be null or empty");
         }
 
-        var sessionId = searchRequest.SessionId;
-        var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
-        chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
-        chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
+        var sessionId = searchRequest.SessionId.ToString();
+        var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
+
+        chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{searchRequest.SearchText}");
+        chatHistory.AddUniqueMessage(AuthorRole.User, $"scope:{searchRequest.Scope}");
 
         _logger.LogInformation($"searchRequest:{searchRequest}");
 
@@ -133,6 +139,13 @@ public class SupportAssistantFunction
               chatHistory,
               executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
               kernel: _kernel);
+
+        chatHistory.AddUniqueMessage(AuthorRole.Assistant, result.Content!);
+
+        if (_useCosmosDbChatHistory)
+        {
+            await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
+        }
 
         return new OkObjectResult(result.Content);
     }

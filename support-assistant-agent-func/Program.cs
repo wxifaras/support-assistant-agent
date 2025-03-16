@@ -81,10 +81,28 @@ builder.Services.AddSingleton<Kernel>(provider =>
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
          sp.GetRequiredService<Kernel>().GetRequiredService<IChatCompletionService>());
 
+var useCosmos = bool.TryParse(Environment.GetEnvironmentVariable("UseCosmosDbChatHistory"), out bool result) ? result : false;
+
+if (useCosmos)
+{
+    builder.Services.AddOptions<CosmosDbOptions>()
+           .Bind(builder.Configuration.GetSection(CosmosDbOptions.CosmosDb))
+           .ValidateDataAnnotations();
+}
+
 builder.Services.AddSingleton<IChatHistoryManager>(sp =>
 {
     var sysPrompt = CorePrompts.GetSystemPrompt();
-    return new ChatHistoryManager(sysPrompt);
+
+    if (useCosmos)
+    {
+        var cosmosDbOptions = sp.GetRequiredService<IOptions<CosmosDbOptions>>();
+        return new SKCosmosDbChatManager(cosmosDbOptions, sysPrompt);
+    }
+    else
+    {
+        return new ChatHistoryManager(sysPrompt);
+    }
 });
 
 builder.Build().Run();
