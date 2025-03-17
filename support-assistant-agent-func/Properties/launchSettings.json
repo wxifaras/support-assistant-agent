@@ -1,6 +1,6 @@
 {
   "profiles": {
-    "equipment_classification_agent_func": {
+    "support-assistant-agent-func": {
       "commandName": "Project",
       "commandLineArgs": "--port 7098"
     },

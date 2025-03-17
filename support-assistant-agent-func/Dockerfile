@@ -10,16 +10,16 @@ EXPOSE 8080
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
-COPY ["equipment-classification-agent-func/equipment-classification-agent-func.csproj", "equipment-classification-agent-func/"]
-RUN dotnet restore "./equipment-classification-agent-func/equipment-classification-agent-func.csproj"
+COPY ["support-assistant-agent-func/support-assistant-agent-func.csproj", "support-assistant-agent-func/"]
+RUN dotnet restore "./support-assistant-agent-func/support-assistant-agent-func.csproj"
 COPY . .
-WORKDIR "/src/equipment-classification-agent-func"
-RUN dotnet build "./equipment-classification-agent-func.csproj" -c $BUILD_CONFIGURATION -o /app/build
+WORKDIR "/src/support-assistant-agent-func"
+RUN dotnet build "./support-assistant-agent-func.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # This stage is used to publish the service project to be copied to the final stage
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./equipment-classification-agent-func.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./support-assistant-agent-func.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # This stage is used in production or when running from VS in regular mode (Default when not using the Debug configuration)
 FROM base AS final
