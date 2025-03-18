@@ -1,7 +1,5 @@
-﻿using Azure.Search.Documents.Models;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
-using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Services;
 using System.ComponentModel;
 
@@ -40,30 +38,4 @@ public class SearchPlugin
 
         return knowledgeBaseList;
     }
-
-    private static KnowledgeBase ConvertToKnowledgeBase(SearchDocument doc)
-    {
-        return new KnowledgeBase
-        {
-            problem_id = doc["problem_id"]?.ToString(),
-            description = doc["description"]?.ToString(),
-            status = doc["status"]?.ToString(),
-           /* impact = doc["impact"]?.ToString(),
-            category = doc["category"]?.ToString(),
-            reported_date = DateTime.TryParse(doc["reported_date"]?.ToString(), out var rd) ? rd : DateTime.MinValue,
-            resolved_date = DateTime.TryParse(doc["resolved_date"]?.ToString(), out var rld) ? rld : null,
-            assigned_to = doc["assigned_to"]?.ToString(),
-            reported_by = doc["reported_by"]?.ToString(),*/
-            root_cause = doc["root_cause"]?.ToString(),
-            workaround = doc["workaround"]?.ToString(),
-            resolution = doc["resolution"]?.ToString(),
-            title = doc["title"]?.ToString()
-           /* related_incidents = doc["related_incidents"]?.ToObject<List<string>>(),
-            Scope = doc["Scope"]?.ToObject<List<string>>(),
-            attachments = doc["attachments"]?.ToObject<List<Attachment>>(),
-            comments = doc["comments"]?.ToObject<List<Comment>>()*/
-        };
-    }
-
-   
 }

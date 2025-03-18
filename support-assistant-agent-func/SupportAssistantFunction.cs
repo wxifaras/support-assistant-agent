@@ -244,12 +244,9 @@ public class SupportAssistantFunction
             var chatHistory = new ChatHistory();
             request.SearchText= request.question_and_answer[0].question;
             var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
-            //chatHistory.AddUserMessage(request.question_and_answer[0].question);
+
             chatHistory.AddUserMessage($"searchText:{request.SearchText}");
             chatHistory.AddUserMessage($"scope:\"{scope}\"");
-
-
-            //await Task.Delay(30000); //for 429 error
 
             var result = await _chat.GetChatMessageContentAsync(
                 chatHistory,
@@ -260,6 +257,7 @@ public class SupportAssistantFunction
 
             await _validationUtility.EvaluateSearchResult(request);
         }
+
         return validationRequests;
     }
 
@@ -278,5 +276,4 @@ public class SupportAssistantFunction
 
         return response.Content!;
     }
-
 }
