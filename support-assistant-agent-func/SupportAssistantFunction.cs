@@ -246,7 +246,7 @@ public class SupportAssistantFunction
             var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
             //chatHistory.AddUserMessage(request.question_and_answer[0].question);
             chatHistory.AddUserMessage($"searchText:{request.SearchText}");
-            chatHistory.AddUserMessage($"scope:{scope}");
+            chatHistory.AddUserMessage($"scope:\"{scope}\"");
 
 
             //await Task.Delay(30000); //for 429 error
