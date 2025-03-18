@@ -1,10 +1,12 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using support_assistant_agent_func.Extensions;
 using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
@@ -24,6 +26,8 @@ public class SupportAssistantFunction
     private readonly IChatCompletionService _chat;
     private readonly IChatHistoryManager _chatHistoryManager;
     private readonly IValidationUtility _validationUtility;
+    private readonly bool _useCosmosDbChatHistory;
+
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
@@ -31,7 +35,8 @@ public class SupportAssistantFunction
         Kernel kernel,
         IChatCompletionService chat,
         IChatHistoryManager chatHistoryManager,
-        IValidationUtility validationUtility)
+        IValidationUtility validationUtility,
+        IConfiguration configuration)
     {
         _logger = logger;
         _azureAISearchService = azureAISearchService;
@@ -39,6 +44,7 @@ public class SupportAssistantFunction
         _chat = chat;
         _chatHistoryManager = chatHistoryManager;
         _validationUtility = validationUtility;
+        _useCosmosDbChatHistory = bool.TryParse(configuration["UseCosmosDbChatHistory"], out bool result) ? result : false;
     }
 
     /// <summary>
@@ -96,7 +102,7 @@ public class SupportAssistantFunction
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
-    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
     {
         if (req == null)
         {
@@ -126,22 +132,38 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request body cannot be null or empty");
         }
 
-        var sessionId = searchRequest.SessionId;
+        try
+        {
+            var sessionId = searchRequest.SessionId.ToString();
+            var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
+
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{searchRequest.SearchText}");
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"scope:{searchRequest.Scope}");
+
+            _logger.LogInformation($"searchRequest:{searchRequest}");
+
+            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
+                  chatHistory,
+                  executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+                  kernel: _kernel);
+
+            chatHistory.AddUniqueMessage(AuthorRole.Assistant, result.Content!);
+
+            if (_useCosmosDbChatHistory)
+            {
+                await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
+            }
+
+            return new OkObjectResult(result.Content);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching knowledge base");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
       
-        _logger.LogInformation($"searchRequest:{searchRequest}");
-
-        var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
-        chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
-        chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
-
-        ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
-        chatHistory,
-        executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
-        kernel: _kernel);
-
-       return new OkObjectResult(result.Content);
     }
-
+      
     /// <summary>
     /// Tests the ground truth of a given input.
     /// </summary>
@@ -168,7 +190,7 @@ public class SupportAssistantFunction
     /// </remarks>
     [Function("TestGroundTruth")]
     public async Task<IActionResult> TestGroundTruth(
-     [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
     {
         if (req == null)
         {
