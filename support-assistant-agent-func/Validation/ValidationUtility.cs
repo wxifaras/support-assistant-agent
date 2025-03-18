@@ -49,7 +49,7 @@ public class ValidationUtility: IValidationUtility
 
         var chat = new List<ChatMessage>()
         {
-          new SystemChatMessage(evaluationPrompt)
+            new SystemChatMessage(evaluationPrompt)
         };
 
         var chatUpdates = await client.CompleteChatAsync(
