@@ -257,8 +257,8 @@ public class SupportAssistantFunction
             request.SearchText= request.question_and_answer[0].question;
             var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
 
-            chatHistory.AddUserMessage($"searchText:{request.SearchText}");
-            chatHistory.AddUserMessage($"scope:\"{scope}\"");
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{request.SearchText}");
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"scope:\"{scope}\"");
 
             var result = await _chat.GetChatMessageContentAsync(
                 chatHistory,
