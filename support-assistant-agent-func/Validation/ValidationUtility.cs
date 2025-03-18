@@ -9,10 +9,10 @@ public interface IValidationUtility
 {
   Task<Object> EvaluateSearchResult(ValidationRequest validationRequest);
 }
+
 public class ValidationUtility: IValidationUtility
 {
     private readonly AzureOpenAIClient _azureOpenAIClient;
-    private readonly IOptions<AzureOpenAIOptions> _azureOpenAIOptions;
     private readonly string _azureOpenAIDeployment;
 
     public ValidationUtility(AzureOpenAIClient azureOpenAIClient, IOptions<AzureOpenAIOptions> azureOpenAIOptions)
@@ -23,9 +23,9 @@ public class ValidationUtility: IValidationUtility
 
     public async Task<Object> EvaluateSearchResult(ValidationRequest validationRequest)
     {
-        string baseDirectory = AppDomain.CurrentDomain.BaseDirectory; 
+        var baseDirectory = AppDomain.CurrentDomain.BaseDirectory; 
         var evaluationSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Validation", "EvaluationSchema.json");
-        var evaluationSchema = File.ReadAllText(evaluationSchemaPath);
+        var evaluationSchema = await File.ReadAllTextAsync(evaluationSchemaPath);
 
         var evaluationPrompt = $@"
             You are an AI assistant evaluating the correctness of answers.
@@ -42,8 +42,7 @@ public class ValidationUtility: IValidationUtility
                  -relevance_score: Measures how well the response aligns with the user query(1, 3, or 5).
                  -thoughtprocess: You will add your thoughts and rating for each accuracy_score,completeness_score and relevance_score into the thoughtprocess JSON and return the JSON as the response.
              JSON should be well formed.
-             The rating value should always be either 1, 3, or 5.
-             ";
+             The rating value should always be either 1, 3, or 5.";
 
         var client = _azureOpenAIClient.GetChatClient(_azureOpenAIDeployment);
 
@@ -52,7 +51,7 @@ public class ValidationUtility: IValidationUtility
           new SystemChatMessage(evaluationPrompt)
         };
 
-        var chatUpdates = client.CompleteChat(
+        var chatUpdates = await client.CompleteChatAsync(
             chat,
             new ChatCompletionOptions()
             {
@@ -76,6 +75,7 @@ public class ValidationUtility: IValidationUtility
             },
             GroundTruthAnswer = evaluationResponse.GroundTruthAnswer
         };
+
         validationRequest.Evaluation = evaluationResponse;
         return validationRequest;
     }

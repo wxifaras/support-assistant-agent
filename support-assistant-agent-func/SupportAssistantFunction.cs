@@ -28,7 +28,6 @@ public class SupportAssistantFunction
     private readonly IValidationUtility _validationUtility;
     private readonly bool _useCosmosDbChatHistory;
 
-
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
         IAzureAISearchService azureAISearchService,
@@ -161,7 +160,6 @@ public class SupportAssistantFunction
             _logger.LogError(ex, "Error searching knowledge base");
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
-      
     }
       
     /// <summary>
@@ -176,10 +174,10 @@ public class SupportAssistantFunction
     ///    "problem_id": "",
     ///    "scope": [""],
     ///    "question_and_answer": [
-    ///    {
-    ///      "question": "",
-    ///      "answer": ""
-    ///    }
+    ///     {
+    ///        "question": "",
+    ///        "answer": ""
+    ///      }
     ///    ]
     ///}
     /// Where:
@@ -197,9 +195,8 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request cannot be null");
         }
 
-        List<ValidationRequest> validationRequests = new List<ValidationRequest>();
-        
-        string fileContent = null;
+        var validationRequests = new List<ValidationRequest>();
+        var fileContent = string.Empty;
 
         if (req.HasFormContentType)
         {
@@ -211,19 +208,18 @@ public class SupportAssistantFunction
                 return new BadRequestObjectResult("File cannot be null or empty");
             }
 
-            using (var stream = file.OpenReadStream())
-            using (var reader = new StreamReader(stream))
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            fileContent = await reader.ReadToEndAsync();
+
+            try
             {
-                 fileContent = await reader.ReadToEndAsync();
-                    try
-                    {
-                        validationRequests = JsonSerializer.Deserialize<List<ValidationRequest>>(fileContent)!;
-                    }
-                    catch (JsonException ex)
-                    {
-                        _logger.LogError($"Failed to deserialize JSON file: {ex.Message}");
-                        return new BadRequestObjectResult("Invalid JSON file");
-                    }   
+                validationRequests = JsonSerializer.Deserialize<List<ValidationRequest>>(fileContent)!;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError($"Failed to deserialize JSON file: {ex.Message}");
+                return new BadRequestObjectResult("Invalid JSON file");
             }
         }
         else
