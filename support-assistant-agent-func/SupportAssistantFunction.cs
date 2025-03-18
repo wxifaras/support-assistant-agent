@@ -86,15 +86,13 @@ public class SupportAssistantFunction
     /// {
     ///   "SessionId": "",
     ///   "Scope": "",
-    ///   "SearchText": "",
-    ///   "ProblemId":""
+    ///   "SearchText": ""
     /// }
     /// 
     /// Where:
     ///   - SessionId: A unique identifier for the user's session.
     ///   - Scope: The scope, which is used as a security filter in the search
     ///   - SearchText: The user's query or search terms.
-    ///   - PrombleId: The document for which the search is being performed.
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
