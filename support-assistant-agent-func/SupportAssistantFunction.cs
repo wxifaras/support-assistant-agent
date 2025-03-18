@@ -244,12 +244,12 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
         }
 
-        var result = await CallKernelWithValidationRequestsAsync(validationRequests);
+        await CallKernelWithValidationRequestsAsync(validationRequests);
 
-        return new OkObjectResult(result);
+        return new OkObjectResult(validationRequests);
     }
 
-    private async Task<List<ValidationRequest>> CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
+    private async Task CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
     {   
         foreach (var request in validationRequests)
         {
@@ -267,9 +267,8 @@ public class SupportAssistantFunction
 
             request.question_and_answer[0].llmResponse = result.Content;
 
-            await _validationUtility.EvaluateSearchResult(request);
+            await _validationUtility.EvaluateSearchResultAsync(request);
         }
-        return validationRequests;
     }
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)

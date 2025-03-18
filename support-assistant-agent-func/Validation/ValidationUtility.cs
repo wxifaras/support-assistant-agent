@@ -8,7 +8,7 @@ namespace support_assistant_agent_func.Validation;
 
 public interface IValidationUtility
 {
-  Task<Object> EvaluateSearchResult(ValidationRequest validationRequest);
+  Task EvaluateSearchResultAsync(ValidationRequest validationRequest);
 }
 
 public class ValidationUtility: IValidationUtility
@@ -22,7 +22,7 @@ public class ValidationUtility: IValidationUtility
         _azureOpenAIDeployment = azureOpenAIOptions.Value.AzureOpenAIDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIDeployment));
     }
 
-    public async Task<Object> EvaluateSearchResult(ValidationRequest validationRequest)
+    public async Task EvaluateSearchResultAsync(ValidationRequest validationRequest)
     {
         var baseDirectory = AppDomain.CurrentDomain.BaseDirectory; 
         var evaluationSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Validation", "EvaluationSchema.json");
@@ -78,6 +78,5 @@ public class ValidationUtility: IValidationUtility
         };
 
         validationRequest.Evaluation = evaluationResponse;
-        return validationRequest;
     }
 }
