@@ -69,7 +69,7 @@ public class SupportAssistantFunction
 
             var knowledgeBase = JsonSerializer.Deserialize<KnowledgeBase>(content, options);
 
-            knowledgeBase!.Summary = await GetCommentsSummary(knowledgeBase.comments);
+            knowledgeBase!.Summary = await GetCommentsSummaryAsync(knowledgeBase.comments);
 
             await _azureAISearchService.IndexKnowledgeBaseAsync(knowledgeBase);
             return new OkObjectResult($"Successfully processed knowledge base: {name}");
@@ -271,7 +271,7 @@ public class SupportAssistantFunction
         }
     }
 
-    private async Task<string> GetCommentsSummary(List<Comment> comments)
+    private async Task<string> GetCommentsSummaryAsync(List<Comment> comments)
     {
         var summaryPrompt = CorePrompts.GetSummaryPrompt(comments);
 

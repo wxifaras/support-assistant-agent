@@ -8,7 +8,7 @@ namespace support_assistant_agent_func.Validation;
 
 public interface IValidationUtility
 {
-  Task EvaluateSearchResultAsync(ValidationRequest validationRequest);
+    Task EvaluateSearchResultAsync(ValidationRequest validationRequest);
 }
 
 public class ValidationUtility: IValidationUtility
