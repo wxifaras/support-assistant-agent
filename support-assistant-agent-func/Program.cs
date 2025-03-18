@@ -1,3 +1,4 @@
+using Azure;
 using Azure.AI.OpenAI;
 using Azure.Search.Documents.Indexes;
 using Microsoft.Azure.Functions.Worker.Builder;
@@ -11,7 +12,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Plugins;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
-using Azure;
+using support_assistant_agent_func.Validation;
 
 var builder = FunctionsApplication.CreateBuilder(args);
 
@@ -75,7 +76,11 @@ builder.Services.AddSingleton<Kernel>(provider =>
     var searchPlugin = new SearchPlugin(azureAISearchService, logger);
     kernelBuilder.Plugins.AddFromObject(searchPlugin, "SearchPlugin");
 
-    return kernelBuilder.Build();
+    var kernel = kernelBuilder.Build();
+
+    searchPlugin.SetKernel(kernel);
+
+    return kernel;
 });
 
 builder.Services.AddSingleton<IChatCompletionService>(sp =>
@@ -103,6 +108,13 @@ builder.Services.AddSingleton<IChatHistoryManager>(sp =>
     {
         return new ChatHistoryManager(sysPrompt);
     }
+});
+
+builder.Services.AddSingleton<IValidationUtility>(sp =>
+{
+    var azureOpenAIClient = sp.GetRequiredService<AzureOpenAIClient>();
+    var azureOpenAIOptions = sp.GetRequiredService<IOptions<AzureOpenAIOptions>>();
+    return new ValidationUtility(azureOpenAIClient, azureOpenAIOptions);
 });
 
 builder.Build().Run();

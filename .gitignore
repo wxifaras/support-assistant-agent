@@ -398,3 +398,5 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+/support-assistant-agent-func/Utility/GroundTruthDoc.json
+/support-assistant-agent-func/Validation/GroundTruthDoc.json

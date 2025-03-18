@@ -11,6 +11,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
+using support_assistant_agent_func.Validation;
 
 namespace support_assistant_agent_func;
 
@@ -24,7 +25,9 @@ public class SupportAssistantFunction
     private readonly Kernel _kernel;
     private readonly IChatCompletionService _chat;
     private readonly IChatHistoryManager _chatHistoryManager;
+    private readonly IValidationUtility _validationUtility;
     private readonly bool _useCosmosDbChatHistory;
+
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
@@ -32,6 +35,7 @@ public class SupportAssistantFunction
         Kernel kernel,
         IChatCompletionService chat,
         IChatHistoryManager chatHistoryManager,
+        IValidationUtility validationUtility,
         IConfiguration configuration)
     {
         _logger = logger;
@@ -39,6 +43,7 @@ public class SupportAssistantFunction
         _kernel = kernel;
         _chat = chat;
         _chatHistoryManager = chatHistoryManager;
+        _validationUtility = validationUtility;
         _useCosmosDbChatHistory = bool.TryParse(configuration["UseCosmosDbChatHistory"], out bool result) ? result : false;
     }
 
@@ -156,6 +161,119 @@ public class SupportAssistantFunction
             _logger.LogError(ex, "Error searching knowledge base");
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
+      
+    }
+      
+    /// <summary>
+    /// Tests the ground truth of a given input.
+    /// </summary>
+    /// <param name="req">The HTTP request containing the test parameters.</param>
+    /// <returns>A response indicating the result of the test.</returns>
+    /// <remarks>
+    /// The request can either be a JSON object or a multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
+    /// The JSON object will be the following structure:
+    ///  {
+    ///    "problem_id": "",
+    ///    "scope": [""],
+    ///    "question_and_answer": [
+    ///    {
+    ///      "question": "",
+    ///      "answer": ""
+    ///    }
+    ///    ]
+    ///}
+    /// Where:
+    ///   - problem_id: The document for which the search is being performed.
+    ///   - scope: The scope, which is used as a security filter in the search.
+    ///   - question: The ground truth question.
+    ///   - answer: The ground truth answer.
+    /// </remarks>
+    [Function("TestGroundTruth")]
+    public async Task<IActionResult> TestGroundTruth(
+    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+    {
+        if (req == null)
+        {
+            return new BadRequestObjectResult("Request cannot be null");
+        }
+
+        List<ValidationRequest> validationRequests = new List<ValidationRequest>();
+        
+        string fileContent = null;
+
+        if (req.HasFormContentType)
+        {
+            var form = await req.ReadFormAsync();
+            var file = form.Files.GetFile("file");
+
+            if (file == null || file.Length == 0)
+            {
+                return new BadRequestObjectResult("File cannot be null or empty");
+            }
+
+            using (var stream = file.OpenReadStream())
+            using (var reader = new StreamReader(stream))
+            {
+                 fileContent = await reader.ReadToEndAsync();
+                    try
+                    {
+                        validationRequests = JsonSerializer.Deserialize<List<ValidationRequest>>(fileContent)!;
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError($"Failed to deserialize JSON file: {ex.Message}");
+                        return new BadRequestObjectResult("Invalid JSON file");
+                    }   
+            }
+        }
+        else
+        {
+            var requestBody = string.Empty;
+            requestBody = await new StreamReader(req.Body).ReadToEndAsync();
+            try
+            {
+                var testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
+                validationRequests.Add(testRequest);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError($"Failed to deserialize request body: {ex.Message}");
+                return new BadRequestObjectResult("Invalid request payload");
+            }
+        }
+
+        if (validationRequests.Count== 0)
+        {
+            _logger.LogError("Request body and file content are both null or empty");
+            return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
+        }
+
+        var result = await CallKernelWithValidationRequestsAsync(validationRequests);
+
+        return new OkObjectResult(result);
+    }
+
+    private async Task<List<ValidationRequest>> CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
+    {   
+        foreach (var request in validationRequests)
+        {
+            var chatHistory = new ChatHistory();
+            request.SearchText= request.question_and_answer[0].question;
+            var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
+
+            chatHistory.AddUserMessage($"searchText:{request.SearchText}");
+            chatHistory.AddUserMessage($"scope:\"{scope}\"");
+
+            var result = await _chat.GetChatMessageContentAsync(
+                chatHistory,
+                executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+                kernel: _kernel);
+
+            request.question_and_answer[0].llmResponse = result.Content;
+
+            await _validationUtility.EvaluateSearchResult(request);
+        }
+        return validationRequests;
     }
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)

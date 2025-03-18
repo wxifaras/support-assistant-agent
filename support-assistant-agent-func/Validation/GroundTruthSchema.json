@@ -1,0 +1,30 @@
+﻿{
+  "type": "object",
+  "properties": {
+    "problem_id": {
+      "type": "string"
+    },
+    "scope": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+    "question_and_answer": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "question": {
+            "type": "string"
+          },
+          "answer": {
+            "type": "string"
+          }
+        },
+        "required": [ "question", "answer" ]
+      }
+    }
+  },
+  "required": [ "problem_id", "question_and_answer" ]
+}
