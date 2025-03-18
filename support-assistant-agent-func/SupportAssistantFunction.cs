@@ -148,21 +148,21 @@ public class SupportAssistantFunction
     /// <param name="req">The HTTP request containing the test parameters.</param>
     /// <returns>A response indicating the result of the test.</returns>
     /// <remarks>
-    /// The request can either be a JSON object or a multipart/form-data containing a JSON file with an array of the objects below.
+    /// The request can either be a JSON object or a multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
     /// The JSON object will be the following structure:
     ///  {
-    ///  "problem_id": "",
-    ///  "scope": [""],
-    ///  "question_and_answer": [
+    ///    "problem_id": "",
+    ///    "scope": [""],
+    ///    "question_and_answer": [
     ///    {
     ///      "question": "",
     ///      "answer": ""
     ///    }
-    ///  ]
+    ///    ]
     ///}
     /// Where:
     ///   - problem_id: The document for which the search is being performed.
-    ///   - scope: The scope, which is used as a security filter in the search
+    ///   - scope: The scope, which is used as a security filter in the search.
     ///   - question: The ground truth question.
     ///   - answer: The ground truth answer.
     /// </remarks>
@@ -175,7 +175,6 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request cannot be null");
         }
 
-        ValidationRequest testRequest = null;
         List<ValidationRequest> validationRequests = new List<ValidationRequest>();
         
         string fileContent = null;
@@ -193,7 +192,7 @@ public class SupportAssistantFunction
             using (var stream = file.OpenReadStream())
             using (var reader = new StreamReader(stream))
             {
-                fileContent = await reader.ReadToEndAsync();
+                 fileContent = await reader.ReadToEndAsync();
                     try
                     {
                         validationRequests = JsonSerializer.Deserialize<List<ValidationRequest>>(fileContent)!;
@@ -208,13 +207,10 @@ public class SupportAssistantFunction
         else
         {
             var requestBody = string.Empty;
-            using (var streamReader = new StreamReader(req.Body))
-            {
-                requestBody = await streamReader.ReadToEndAsync();
-            }
+            requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             try
             {
-                testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
+                var testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
                 validationRequests.Add(testRequest);
             }
             catch (JsonException ex)
@@ -255,7 +251,6 @@ public class SupportAssistantFunction
 
             await _validationUtility.EvaluateSearchResult(request);
         }
-
         return validationRequests;
     }
 

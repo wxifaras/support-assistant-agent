@@ -21,19 +21,15 @@ public class ValidationUtility: IValidationUtility
         _azureOpenAIDeployment = azureOpenAIOptions.Value.AzureOpenAIDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIDeployment));
     }
 
-    //public async Task<Object> EvaluateSearchResult(string searchText, string pId, string llmResult)
     public async Task<Object> EvaluateSearchResult(ValidationRequest validationRequest)
     {
         string baseDirectory = AppDomain.CurrentDomain.BaseDirectory; 
         var evaluationSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Validation", "EvaluationSchema.json");
         var evaluationSchema = File.ReadAllText(evaluationSchemaPath);
-        //we wouldn't need the Ground Truth doc becuase they would be passing in all the info we need. Even if it is 1 Q&A pair
 
         var evaluationPrompt = $@"
-             You are an AI assistant evaluating the correctness of answers.
-
+            You are an AI assistant evaluating the correctness of answers.
             Here is the ground truth answer: {validationRequest.question_and_answer[0].answer}
-         
             Check the ground truth answer with the generated answer from the model which is Response: {validationRequest.question_and_answer[0].llmResponse}
              The rating value should always be either 1, 3, or 5.
                  One: The answer is incorrect
@@ -67,7 +63,6 @@ public class ValidationUtility: IValidationUtility
 
         evaluationResponse = new Evaluation
         {
-            ProblemId = validationRequest.problem_id,
             UserQuestion = evaluationResponse.UserQuestion,
             GeneratedAnswer = evaluationResponse.GeneratedAnswer,
             AccuracyScore = evaluationResponse.AccuracyScore,

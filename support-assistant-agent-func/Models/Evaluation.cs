@@ -4,11 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace support_assistant_agent_func.Models
-{
+namespace support_assistant_agent_func.Models;
+
     public class Evaluation
     {
-        public string ProblemId { get; set; }
         public string UserQuestion { get; set; }
         public string GeneratedAnswer { get; set; }    
         public int AccuracyScore { get; set; }
@@ -23,4 +22,4 @@ namespace support_assistant_agent_func.Models
         public string CompletenessScore { get; set; }
         public string RelevanceScore { get; set; }
     }
-}
+
