@@ -29,7 +29,7 @@ public class SearchPlugin
     [KernelFunction]
     [Description("Searches the knowledge base for solutions to a support ticket.")]
     public async Task<object> SearchKnowledgeBase(
-        [Description("Search Text")] string searchText, [Description("The Scope")] string scope, [Description("Is Evaluation Required")] bool isEvalRequired)
+        [Description("Search Text")] string searchText, [Description("Scope")] string scope)
     {
         _logger.LogInformation($"SearchPlugin.SearchKnowledgeBase invoked. searchText:'{searchText}' in scope:'{scope}'");
 

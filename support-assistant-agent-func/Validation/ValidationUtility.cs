@@ -7,7 +7,7 @@ using System.Text.Json;
 namespace support_assistant_agent_func.Validation;
 public interface IValidationUtility
 {
-  Task<Object> EvaluateSearchResult(string searchText, string pId, string llmResult);
+  Task<Object> EvaluateSearchResult(ValidationRequest validationRequest);
 }
 public class ValidationUtility: IValidationUtility
 {
@@ -21,32 +21,29 @@ public class ValidationUtility: IValidationUtility
         _azureOpenAIDeployment = azureOpenAIOptions.Value.AzureOpenAIDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIDeployment));
     }
 
-    public async Task<Object> EvaluateSearchResult(string searchText, string pId, string llmResult)
+    //public async Task<Object> EvaluateSearchResult(string searchText, string pId, string llmResult)
+    public async Task<Object> EvaluateSearchResult(ValidationRequest validationRequest)
     {
-        string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-        string groundTruthDocPath = Path.Combine(baseDirectory, "Validation", "GroundTruthDoc.json");
-        string groundTruthDocContent = File.ReadAllText(groundTruthDocPath);
-        string groundTruthSchemaPath = Path.Combine(baseDirectory, "Validation", "GroundTruthSchema.json");
-        string groundTruthSchema = File.ReadAllText(groundTruthSchemaPath);
+        string baseDirectory = AppDomain.CurrentDomain.BaseDirectory; 
         var evaluationSchemaPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Validation", "EvaluationSchema.json");
         var evaluationSchema = File.ReadAllText(evaluationSchemaPath);
+        //we wouldn't need the Ground Truth doc becuase they would be passing in all the info we need. Even if it is 1 Q&A pair
 
         var evaluationPrompt = $@"
              You are an AI assistant evaluating the correctness of answers.
-             Below is the ground truth file with the following schema:
-             {groundTruthSchema}
-             and the ground truth content:
-             {groundTruthDocContent}
-             Please scan the ground truth content for the corresponding problem_id: {pId} and check the answer with the generated answer from the model which is Response: {llmResult}
+
+            Here is the ground truth answer: {validationRequest.question_and_answer[0].answer}
+         
+            Check the ground truth answer with the generated answer from the model which is Response: {validationRequest.question_and_answer[0].llmResponse}
              The rating value should always be either 1, 3, or 5.
                  One: The answer is incorrect
                  Three: The answer is partially correct, but could be missing some key context or nuance that makes it potentially misleading or incomplete compared to the context provided.
                  Five: The answer is correct and complete based on the context provided.
-             User Query: {searchText} 
+             User Query: {validationRequest.question_and_answer[0].question} 
              Return a JSON object with the following scores:
                  -accuracy_score: Measures how factually correct the response is (1, 3, or 5).
                  -completeness_score: Measures if the response covers all relevant points(1, 3, or 5).
-                 - relevance_score: Measures how well the response aligns with the user query(1, 3, or 5).
+                 -relevance_score: Measures how well the response aligns with the user query(1, 3, or 5).
                  -thoughtprocess: You will add your thoughts and rating for each accuracy_score,completeness_score and relevance_score into the thoughtprocess JSON and return the JSON as the response.
              JSON should be well formed.
              The rating value should always be either 1, 3, or 5.
@@ -70,7 +67,7 @@ public class ValidationUtility: IValidationUtility
 
         evaluationResponse = new Evaluation
         {
-            ProblemId = evaluationResponse.ProblemId,
+            ProblemId = validationRequest.problem_id,
             UserQuestion = evaluationResponse.UserQuestion,
             GeneratedAnswer = evaluationResponse.GeneratedAnswer,
             AccuracyScore = evaluationResponse.AccuracyScore,
@@ -84,6 +81,7 @@ public class ValidationUtility: IValidationUtility
             },
             GroundTruthAnswer = evaluationResponse.GroundTruthAnswer
         };
-       return evaluationResponse;
+        validationRequest.Evaluation = evaluationResponse;
+        return validationRequest;
     }
 }

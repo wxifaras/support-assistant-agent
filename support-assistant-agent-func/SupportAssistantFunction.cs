@@ -87,7 +87,6 @@ public class SupportAssistantFunction
     ///   "SessionId": "",
     ///   "Scope": "",
     ///   "SearchText": "",
-    ///   "EvalRequired": "",
     ///   "ProblemId":""
     /// }
     /// 
@@ -96,7 +95,6 @@ public class SupportAssistantFunction
     ///   - Scope: The scope, which is used as a security filter in the search
     ///   - SearchText: The user's query or search terms.
     ///   - PrombleId: The document for which the search is being performed.
-    ///   - EvalRequired: A true/false flag indicating whether validation is required.
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
@@ -137,23 +135,132 @@ public class SupportAssistantFunction
         var chatHistory = _chatHistoryManager.GetOrCreateChatHistory(sessionId.ToString());
         chatHistory.AddUserMessage($"searchText:{searchRequest.SearchText}");
         chatHistory.AddUserMessage($"scope:{searchRequest.Scope}");
-        chatHistory.AddUserMessage($"EvalRequired:{(searchRequest.EvalRequired ?? "false")}");
 
         ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
         chatHistory,
         executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
         kernel: _kernel);
 
-        if (searchRequest.EvalRequired == "true")
-        {          
-            var response = await _validationUtility.EvaluateSearchResult(searchRequest.SearchText, searchRequest.ProblemId, result.Content);
+       return new OkObjectResult(result.Content);
+    }
 
-            return new OkObjectResult(response);
+    /// <summary>
+    /// Tests the ground truth of a given input.
+    /// </summary>
+    /// <param name="req">The HTTP request containing the test parameters.</param>
+    /// <returns>A response indicating the result of the test.</returns>
+    /// <remarks>
+    /// The request can either be a JSON object or a multipart/form-data containing a JSON file with an array of the objects below.
+    /// The JSON object will be the following structure:
+    ///  {
+    ///  "problem_id": "",
+    ///  "scope": [""],
+    ///  "question_and_answer": [
+    ///    {
+    ///      "question": "",
+    ///      "answer": ""
+    ///    }
+    ///  ]
+    ///}
+    /// Where:
+    ///   - problem_id: The document for which the search is being performed.
+    ///   - scope: The scope, which is used as a security filter in the search
+    ///   - question: The ground truth question.
+    ///   - answer: The ground truth answer.
+    /// </remarks>
+    [Function("TestGroundTruth")]
+    public async Task<IActionResult> TestGroundTruth(
+     [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+    {
+        if (req == null)
+        {
+            return new BadRequestObjectResult("Request cannot be null");
+        }
+
+        ValidationRequest testRequest = null;
+        List<ValidationRequest> validationRequests = new List<ValidationRequest>();
+        
+        string fileContent = null;
+
+        if (req.HasFormContentType)
+        {
+            var form = await req.ReadFormAsync();
+            var file = form.Files.GetFile("file");
+
+            if (file == null || file.Length == 0)
+            {
+                return new BadRequestObjectResult("File cannot be null or empty");
+            }
+
+            using (var stream = file.OpenReadStream())
+            using (var reader = new StreamReader(stream))
+            {
+                fileContent = await reader.ReadToEndAsync();
+                    try
+                    {
+                        validationRequests = JsonSerializer.Deserialize<List<ValidationRequest>>(fileContent)!;
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError($"Failed to deserialize JSON file: {ex.Message}");
+                        return new BadRequestObjectResult("Invalid JSON file");
+                    }   
+            }
         }
         else
         {
-            return new OkObjectResult(result.Content);
+            var requestBody = string.Empty;
+            using (var streamReader = new StreamReader(req.Body))
+            {
+                requestBody = await streamReader.ReadToEndAsync();
+            }
+            try
+            {
+                testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
+                validationRequests.Add(testRequest);
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError($"Failed to deserialize request body: {ex.Message}");
+                return new BadRequestObjectResult("Invalid request payload");
+            }
         }
+
+        if (validationRequests.Count== 0)
+        {
+            _logger.LogError("Request body and file content are both null or empty");
+            return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
+        }
+
+        var result = await CallKernelWithValidationRequestsAsync(validationRequests);
+
+        return new OkObjectResult(result);
+    }
+
+    private async Task<List<ValidationRequest>> CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
+    {   
+        foreach (var request in validationRequests)
+        {
+            var chatHistory = new ChatHistory();
+            request.SearchText= request.question_and_answer[0].question;
+            var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
+            //chatHistory.AddUserMessage(request.question_and_answer[0].question);
+            chatHistory.AddUserMessage($"searchText:{request.SearchText}");
+            chatHistory.AddUserMessage($"scope:{scope}");
+
+
+            //await Task.Delay(30000); //for 429 error
+
+            var result = await _chat.GetChatMessageContentAsync(
+                chatHistory,
+                executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+                kernel: _kernel);
+
+            request.question_and_answer[0].llmResponse = result.Content;
+
+            await _validationUtility.EvaluateSearchResult(request);
+        }
+        return validationRequests;
     }
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)
@@ -171,4 +278,5 @@ public class SupportAssistantFunction
 
         return response.Content!;
     }
+
 }
