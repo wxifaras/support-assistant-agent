@@ -5,6 +5,7 @@ using support_assistant_agent_func.Models;
 using System.Text.Json;
 
 namespace support_assistant_agent_func.Validation;
+
 public interface IValidationUtility
 {
   Task<Object> EvaluateSearchResult(ValidationRequest validationRequest);
