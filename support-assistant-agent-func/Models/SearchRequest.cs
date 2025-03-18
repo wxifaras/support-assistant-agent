@@ -12,8 +12,4 @@ public record SearchRequest
 
     [Required]
     public string SearchText { get; set; }
-
-    public string EvalRequired { get; set; }
-
-    public string ProblemId { get; set; }
 }

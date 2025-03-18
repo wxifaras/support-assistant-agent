@@ -1,11 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace support_assistant_agent_func.Models;
+﻿namespace support_assistant_agent_func.Models;
 
 public class ValidationRequest
 {
@@ -15,6 +8,7 @@ public class ValidationRequest
     public List<string> scope { get; set; }
     public Evaluation Evaluation { get; set; }
 }
+
 public class QuestionAndAnswer
 {
     public string question { get; set; }
