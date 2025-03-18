@@ -97,7 +97,7 @@ public class SupportAssistantFunction
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
-    [HttpTrigger(AuthorizationLevel.Function, "post")] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
     {
         if (req == null)
         {
@@ -127,27 +127,35 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request body cannot be null or empty");
         }
 
-        var sessionId = searchRequest.SessionId.ToString();
-        var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
-
-        chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{searchRequest.SearchText}");
-        chatHistory.AddUniqueMessage(AuthorRole.User, $"scope:{searchRequest.Scope}");
-
-        _logger.LogInformation($"searchRequest:{searchRequest}");
-
-        ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
-              chatHistory,
-              executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
-              kernel: _kernel);
-
-        chatHistory.AddUniqueMessage(AuthorRole.Assistant, result.Content!);
-
-        if (_useCosmosDbChatHistory)
+        try
         {
-            await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
-        }
+            var sessionId = searchRequest.SessionId.ToString();
+            var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
 
-        return new OkObjectResult(result.Content);
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{searchRequest.SearchText}");
+            chatHistory.AddUniqueMessage(AuthorRole.User, $"scope:{searchRequest.Scope}");
+
+            _logger.LogInformation($"searchRequest:{searchRequest}");
+
+            ChatMessageContent? result = await _chat.GetChatMessageContentAsync(
+                  chatHistory,
+                  executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.8, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
+                  kernel: _kernel);
+
+            chatHistory.AddUniqueMessage(AuthorRole.Assistant, result.Content!);
+
+            if (_useCosmosDbChatHistory)
+            {
+                await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
+            }
+
+            return new OkObjectResult(result.Content);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error searching knowledge base");
+            return new StatusCodeResult(StatusCodes.Status500InternalServerError);
+        }
     }
 
     private async Task<string> GetCommentsSummary(List<Comment> comments)
