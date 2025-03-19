@@ -196,6 +196,7 @@ public class SupportAssistantFunction
         }
 
         var validationRequests = new List<ValidationRequest>();
+        var evaluationResponses = new List<Evaluation>();
         var fileContent = string.Empty;
 
         if (req.HasFormContentType)
@@ -231,7 +232,9 @@ public class SupportAssistantFunction
 
         await CallKernelWithValidationRequestsAsync(validationRequests);
 
-        return new OkObjectResult(validationRequests);
+        evaluationResponses = validationRequests.Select(x => x.Evaluation).ToList();
+
+        return new OkObjectResult(evaluationResponses);
     }
 
     private async Task CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
