@@ -222,21 +222,6 @@ public class SupportAssistantFunction
                 return new BadRequestObjectResult("Invalid JSON file");
             }
         }
-        else
-        {
-            var requestBody = string.Empty;
-            requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            try
-            {
-                var testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
-                validationRequests.Add(testRequest);
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError($"Failed to deserialize request body: {ex.Message}");
-                return new BadRequestObjectResult("Invalid request payload");
-            }
-        }
 
         if (validationRequests.Count== 0)
         {
@@ -254,7 +239,7 @@ public class SupportAssistantFunction
         foreach (var request in validationRequests)
         {
             var chatHistory = new ChatHistory();
-            request.SearchText= request.question_and_answer[0].question;
+            request.SearchText = request.question_and_answer[0].question;
             var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
 
             chatHistory.AddUserMessage($"searchText:{request.SearchText}");
