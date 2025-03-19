@@ -29,21 +29,24 @@ public class ValidationUtility: IValidationUtility
         var evaluationSchema = await File.ReadAllTextAsync(evaluationSchemaPath);
 
         var evaluationPrompt = $@"
-            You are an AI assistant evaluating the correctness of answers.
-            Here is the ground truth answer: {validationRequest.question_and_answer[0].answer}
-            Check the ground truth answer with the generated answer from the model which is Response: {validationRequest.question_and_answer[0].llmResponse}
-             The rating value should always be either 1, 3, or 5.
-                 One: The answer is incorrect
-                 Three: The answer is partially correct, but could be missing some key context or nuance that makes it potentially misleading or incomplete compared to the context provided.
-                 Five: The answer is correct and complete based on the context provided.
-             User Query: {validationRequest.question_and_answer[0].question} 
-             Return a JSON object with the following scores:
-                 -accuracy_score: Measures how factually correct the response is (1, 3, or 5).
-                 -completeness_score: Measures if the response covers all relevant points(1, 3, or 5).
-                 -relevance_score: Measures how well the response aligns with the user query(1, 3, or 5).
-                 -thoughtprocess: You will add your thoughts and rating for each accuracy_score,completeness_score and relevance_score into the thoughtprocess JSON and return the JSON as the response.
-             JSON should be well formed.
-             The rating value should always be either 1, 3, or 5.";
+            You are an AI assistant evaluating the correctness of answers. The 'correctness metric' is a measure of if the generated answer to a given User Question is correct based on the ground truth answer. You
+            will be given the generated answer and the ground truth answer.
+            
+            You need to compare the generated answer against the ground truth answer and score the answer between one to five using the following rating scale:
+            One: The answer is incorrect
+            Three: The answer is partially correct, but could be missing some key context or nuance that makes it potentially misleading or incomplete compared to the ground truth answer provided.
+            Five: The answer is correct and complete based on the ground truth answer provided.
+
+            You must also provide your reasoning as to why the rating you selected was given.
+
+            The rating value should always be either 1, 3, or 5.
+
+            You will add your thoughts and rating into the thoughts JSON and return the JSON as the response along with the ground truth answer.
+
+            User Question: {validationRequest.question_and_answer[0].question}            
+            Ground truth answer: {validationRequest.question_and_answer[0].answer}
+            Generated answer: {validationRequest.question_and_answer[0].llmResponse}
+            ";
 
         var client = _azureOpenAIClient.GetChatClient(_azureOpenAIDeployment);
 
@@ -65,15 +68,8 @@ public class ValidationUtility: IValidationUtility
         {
             UserQuestion = evaluationResponse.UserQuestion,
             GeneratedAnswer = evaluationResponse.GeneratedAnswer,
-            AccuracyScore = evaluationResponse.AccuracyScore,
-            CompletenessScore = evaluationResponse.CompletenessScore,
-            RelevanceScore = evaluationResponse.RelevanceScore,
-            ThoughtProcess = new ThoughtProcess
-            {
-                AccuracyScore = evaluationResponse.ThoughtProcess.AccuracyScore,
-                CompletenessScore = evaluationResponse.ThoughtProcess.CompletenessScore,
-                RelevanceScore = evaluationResponse.ThoughtProcess.RelevanceScore
-            },
+            Rating = evaluationResponse.Rating,
+            Thoughts = evaluationResponse.Thoughts,
             GroundTruthAnswer = evaluationResponse.GroundTruthAnswer
         };
 

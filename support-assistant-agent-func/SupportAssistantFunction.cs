@@ -168,9 +168,10 @@ public class SupportAssistantFunction
     /// <param name="req">The HTTP request containing the test parameters.</param>
     /// <returns>A response indicating the result of the test.</returns>
     /// <remarks>
-    /// The request can either be a JSON object or a multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
+    /// The request is multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
     /// The JSON object will be the following structure:
-    ///  {
+    /// [ 
+    /// {
     ///    "problem_id": "",
     ///    "scope": [""],
     ///    "question_and_answer": [
@@ -180,6 +181,7 @@ public class SupportAssistantFunction
     ///      }
     ///    ]
     ///}
+    ///]
     /// Where:
     ///   - problem_id: The document for which the search is being performed.
     ///   - scope: The scope, which is used as a security filter in the search.
@@ -196,6 +198,7 @@ public class SupportAssistantFunction
         }
 
         var validationRequests = new List<ValidationRequest>();
+        var evaluationResponses = new List<Evaluation>();
         var fileContent = string.Empty;
 
         if (req.HasFormContentType)
@@ -222,21 +225,6 @@ public class SupportAssistantFunction
                 return new BadRequestObjectResult("Invalid JSON file");
             }
         }
-        else
-        {
-            var requestBody = string.Empty;
-            requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            try
-            {
-                var testRequest = JsonSerializer.Deserialize<ValidationRequest>(requestBody)!;
-                validationRequests.Add(testRequest);
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError($"Failed to deserialize request body: {ex.Message}");
-                return new BadRequestObjectResult("Invalid request payload");
-            }
-        }
 
         if (validationRequests.Count== 0)
         {
@@ -246,7 +234,9 @@ public class SupportAssistantFunction
 
         await CallKernelWithValidationRequestsAsync(validationRequests);
 
-        return new OkObjectResult(validationRequests);
+        evaluationResponses = validationRequests.Select(x => x.Evaluation).ToList();
+
+        return new OkObjectResult(evaluationResponses);
     }
 
     private async Task CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
@@ -254,7 +244,7 @@ public class SupportAssistantFunction
         foreach (var request in validationRequests)
         {
             var chatHistory = new ChatHistory();
-            request.SearchText= request.question_and_answer[0].question;
+            request.SearchText = request.question_and_answer[0].question;
             var scope = request.scope != null ? string.Join(", ", request.scope) : string.Empty;
 
             chatHistory.AddUniqueMessage(AuthorRole.User, $"searchText:{request.SearchText}");

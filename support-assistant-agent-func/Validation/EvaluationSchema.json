@@ -7,33 +7,15 @@
     "GeneratedAnswer": {
       "type": "string"
     },
-    "AccuracyScore": {
+    "Rating": {
       "type": "integer"
     },
-    "CompletenessScore": {
-      "type": "integer"
-    },
-    "RelevanceScore": {
-      "type": "integer"
-    },
-    "ThoughtProcess": {
-      "type": "object",
-      "properties": {
-        "AccuracyScore": {
-          "type": "string"
-        },
-        "CompletenessScore": {
-          "type": "string"
-        },
-        "RelevanceScore": {
-          "type": "string"
-        }
-      },
-      "required": [ "AccuracyScore", "CompletenessScore", "RelevanceScore" ]
+    "Thoughts": {
+      "type": "string"
     },
     "GroundTruthAnswer": {
       "type": "string"
     }
   },
-  "required": [ "ProblemId", "UserQuestion", "GeneratedAnswer", "AccuracyScore", "CompletenessScore", "RelevanceScore", "ThoughtProcess", "GroundTruthAnswer" ]
+  "required": [ "UserQuestion", "GeneratedAnswer", "Rating", "Thoughts", "GroundTruthAnswer" ]
 }

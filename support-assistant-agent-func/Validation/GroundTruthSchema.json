@@ -9,7 +9,7 @@
       "items": {
         "type": "string"
       }
-    }
+    },
     "question_and_answer": {
       "type": "array",
       "items": {
