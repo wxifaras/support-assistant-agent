@@ -14,4 +14,3 @@ namespace support_assistant_agent_func.Models;
         public string Thoughts { get; set; }
         public string GroundTruthAnswer { get; set; }
     }
-
