@@ -168,9 +168,10 @@ public class SupportAssistantFunction
     /// <param name="req">The HTTP request containing the test parameters.</param>
     /// <returns>A response indicating the result of the test.</returns>
     /// <remarks>
-    /// The request can either be a JSON object or a multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
+    /// The request is multipart/form-data containing key:"file" value:a JSON file with an array of the objects below.
     /// The JSON object will be the following structure:
-    ///  {
+    /// [ 
+    /// {
     ///    "problem_id": "",
     ///    "scope": [""],
     ///    "question_and_answer": [
@@ -180,6 +181,7 @@ public class SupportAssistantFunction
     ///      }
     ///    ]
     ///}
+    ///]
     /// Where:
     ///   - problem_id: The document for which the search is being performed.
     ///   - scope: The scope, which is used as a security filter in the search.
