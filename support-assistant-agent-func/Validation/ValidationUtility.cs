@@ -29,8 +29,8 @@ public class ValidationUtility: IValidationUtility
         var evaluationSchema = await File.ReadAllTextAsync(evaluationSchemaPath);
 
         var evaluationPrompt = $@"
-            You are an AI assistant evaluating the correctness of answers. The 'correctness metric' is a measure of if the generated answer to a given User Question is correct based on the ground truth answer. You
-            will be given the generated answer and the ground truth answer.
+            You are an AI assistant evaluating the correctness of answers. The 'correctness metric' is a measure of if the generated answer to a given User Question is correct based on the ground truth answer. 
+            You will be given the generated answer and the ground truth answer.
             
             You need to compare the generated answer against the ground truth answer and score the answer between one to five using the following rating scale:
             One: The answer is incorrect
@@ -45,8 +45,7 @@ public class ValidationUtility: IValidationUtility
 
             User Question: {validationRequest.question_and_answer[0].question}            
             Ground truth answer: {validationRequest.question_and_answer[0].answer}
-            Generated answer: {validationRequest.question_and_answer[0].llmResponse}
-            ";
+            Generated answer: {validationRequest.question_and_answer[0].llmResponse}";
 
         var client = _azureOpenAIClient.GetChatClient(_azureOpenAIDeployment);
 
@@ -66,7 +65,7 @@ public class ValidationUtility: IValidationUtility
 
         evaluationResponse = new Evaluation
         {
-            UserQuestion = evaluationResponse.UserQuestion,
+            UserQuestion = evaluationResponse!.UserQuestion,
             GeneratedAnswer = evaluationResponse.GeneratedAnswer,
             Rating = evaluationResponse.Rating,
             Thoughts = evaluationResponse.Thoughts,

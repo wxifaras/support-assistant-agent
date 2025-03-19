@@ -255,7 +255,7 @@ public class SupportAssistantFunction
                 executionSettings: new OpenAIPromptExecutionSettings { Temperature = 0.0, TopP = 0.0, ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions },
                 kernel: _kernel);
 
-            request.question_and_answer[0].llmResponse = result.Content;
+            request.question_and_answer[0].llmResponse = result.Content!;
 
             await _validationUtility.EvaluateSearchResultAsync(request);
         }
