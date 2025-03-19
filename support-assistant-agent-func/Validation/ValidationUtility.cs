@@ -41,7 +41,7 @@ public class ValidationUtility: IValidationUtility
 
             The rating value should always be either 1, 3, or 5.
 
-            You will add your thoughts and rating into the thoughts JSON and return the JSON as the response.
+            You will add your thoughts and rating into the thoughts JSON and return the JSON as the response along with the ground truth answer.
 
             User Question: {validationRequest.question_and_answer[0].question}            
             Ground truth answer: {validationRequest.question_and_answer[0].answer}
