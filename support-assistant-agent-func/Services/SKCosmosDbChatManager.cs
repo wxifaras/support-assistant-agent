@@ -126,7 +126,6 @@ public class SKCosmosDbChatManager : IChatHistoryManager
             existingItem!.ChatHistory = jsonChatHistory;
             existingItem.LastAccessed = DateTime.UtcNow;
 
-            //await _chatContainer.UpsertItemAsync(existingItem, partitionKey);
             await _chatContainer.ReplaceItemAsync(existingItem, existingItem.id, partitionKey);
         }
         catch (CosmosException ex)
