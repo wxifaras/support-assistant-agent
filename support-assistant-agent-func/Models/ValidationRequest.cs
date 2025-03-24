@@ -7,6 +7,8 @@ public class ValidationRequest
     public string SearchText { get; set; }
     public List<string> scope { get; set; }
     public Evaluation Evaluation { get; set; }
+    public ProductionEvaluation ProductionEvaluation { get; set; }
+    public bool isProductionEvaluation { get; set; }
 }
 
 public class QuestionAndAnswer

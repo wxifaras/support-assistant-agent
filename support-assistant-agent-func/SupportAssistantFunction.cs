@@ -27,6 +27,7 @@ public class SupportAssistantFunction
     private readonly IChatHistoryManager _chatHistoryManager;
     private readonly IValidationUtility _validationUtility;
     private readonly bool _useCosmosDbChatHistory;
+    private readonly bool _productionTesting;
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
@@ -44,6 +45,7 @@ public class SupportAssistantFunction
         _chatHistoryManager = chatHistoryManager;
         _validationUtility = validationUtility;
         _useCosmosDbChatHistory = bool.TryParse(configuration["UseCosmosDbChatHistory"], out bool result) ? result : false;
+        _productionTesting = bool.TryParse(configuration["ProductionTesting"], out bool resultProductionTesting) ? resultProductionTesting : false;
     }
 
     /// <summary>
@@ -132,7 +134,7 @@ public class SupportAssistantFunction
         }
 
         try
-        {
+        { 
             var sessionId = searchRequest.SessionId.ToString();
             var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
 
@@ -151,6 +153,27 @@ public class SupportAssistantFunction
             if (_useCosmosDbChatHistory)
             {
                 await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
+            }
+
+            if (_productionTesting)
+            {
+                ValidationRequest validationRequest = new ValidationRequest
+                {
+                    isProductionEvaluation = true,
+
+                    question_and_answer = new List<QuestionAndAnswer>
+                    {
+                        new QuestionAndAnswer
+                        {
+                            question = searchRequest.SearchText,
+                            llmResponse = result.Content!
+                        }
+                    }
+                };
+
+                await _validationUtility.EvaluateSearchResultAsync(validationRequest);
+
+                return new OkObjectResult(validationRequest.ProductionEvaluation);
             }
 
             return new OkObjectResult(result.Content);

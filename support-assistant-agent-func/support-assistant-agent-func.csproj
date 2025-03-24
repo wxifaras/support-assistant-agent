@@ -40,6 +40,9 @@
     <None Update="Validation\GroundTruthSchema.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+	<None Update="Validation\ProductionEvaluationSchema.json">
+	  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	</None> 
   </ItemGroup>
   <ItemGroup>
     <Using Include="System.Threading.ExecutionContext" Alias="ExecutionContext" />
