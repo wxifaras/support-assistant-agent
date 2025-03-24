@@ -101,7 +101,7 @@ public class SupportAssistantFunction
     /// </remarks>
     [Function("SearchKnowledgeBase")]
     public async Task<IActionResult> SearchKnowledgeBase(
-    [HttpTrigger(AuthorizationLevel.Function, "get")] HttpRequest req)
+    [HttpTrigger(AuthorizationLevel.Function, "get", "post")] HttpRequest req)
     {
         if (req == null)
         {
