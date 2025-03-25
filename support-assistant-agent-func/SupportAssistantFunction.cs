@@ -27,6 +27,7 @@ public class SupportAssistantFunction
     private readonly IChatHistoryManager _chatHistoryManager;
     private readonly IValidationUtility _validationUtility;
     private readonly bool _useCosmosDbChatHistory;
+    private readonly bool _productionTesting;
 
     public SupportAssistantFunction(
         ILogger<SupportAssistantFunction> logger,
@@ -44,6 +45,7 @@ public class SupportAssistantFunction
         _chatHistoryManager = chatHistoryManager;
         _validationUtility = validationUtility;
         _useCosmosDbChatHistory = bool.TryParse(configuration["UseCosmosDbChatHistory"], out bool result) ? result : false;
+        _productionTesting = bool.TryParse(configuration["ProductionTesting"], out bool resultProductionTesting) ? resultProductionTesting : false;
     }
 
     /// <summary>
@@ -132,7 +134,7 @@ public class SupportAssistantFunction
         }
 
         try
-        {
+        { 
             var sessionId = searchRequest.SessionId.ToString();
             var chatHistory = await _chatHistoryManager.GetOrCreateChatHistoryAsync(sessionId);
 
@@ -153,6 +155,12 @@ public class SupportAssistantFunction
                 await _chatHistoryManager.SaveChatHistoryAsync(sessionId, chatHistory);
             }
 
+            if (_productionTesting)
+            {
+                var validationResponse = await RunProdValidationTestAsync(searchRequest, chatHistory, result);
+                return new OkObjectResult(validationResponse.ProductionEvaluation);
+            }
+
             return new OkObjectResult(result.Content);
         }
         catch (Exception ex)
@@ -161,7 +169,35 @@ public class SupportAssistantFunction
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
     }
-      
+
+    private async Task<ValidationResponse> RunProdValidationTestAsync(SearchRequest searchRequest, ChatHistory chatHistory, ChatMessageContent result)
+    {
+        var validationRequest = new ValidationRequest
+        {
+            isProductionEvaluation = true,
+
+            question_and_answer = new List<QuestionAndAnswer>
+            {
+               new QuestionAndAnswer
+               {
+                  question = searchRequest.SearchText,
+                  llmResponse = result.Content!
+               }
+            }
+        };
+
+        var toolMessages = chatHistory
+        .Where(message => message.Role == AuthorRole.Tool)
+        .Select(message => message.Content)
+        .ToList();
+
+        validationRequest.knowledgeBase = toolMessages.Last();
+
+        var validationResponse= await _validationUtility.EvaluateSearchResultAsync(validationRequest);
+        
+        return validationResponse;
+    }
+
     /// <summary>
     /// Tests the ground truth of a given input.
     /// </summary>
@@ -226,21 +262,22 @@ public class SupportAssistantFunction
             }
         }
 
-        if (validationRequests.Count== 0)
+        if (validationRequests.Count == 0)
         {
             _logger.LogError("Request body and file content are both null or empty");
             return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
         }
 
-        await CallKernelWithValidationRequestsAsync(validationRequests);
-
-        evaluationResponses = validationRequests.Select(x => x.Evaluation).ToList();
+        var validationResponses = await CallKernelWithValidationRequestsAsync(validationRequests);
+        evaluationResponses = validationResponses.Select(x => x.Evaluation).ToList();
 
         return new OkObjectResult(evaluationResponses);
     }
 
-    private async Task CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
-    {   
+    private async Task<List<ValidationResponse>> CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
+    {
+      var validationResponses = new List<ValidationResponse>();
+
         foreach (var request in validationRequests)
         {
             var chatHistory = new ChatHistory();
@@ -257,8 +294,11 @@ public class SupportAssistantFunction
 
             request.question_and_answer[0].llmResponse = result.Content!;
 
-            await _validationUtility.EvaluateSearchResultAsync(request);
+            var response = await _validationUtility.EvaluateSearchResultAsync(request);
+            validationResponses.Add(response);
         }
+
+       return validationResponses;
     }
 
     private async Task<string> GetCommentsSummaryAsync(List<Comment> comments)

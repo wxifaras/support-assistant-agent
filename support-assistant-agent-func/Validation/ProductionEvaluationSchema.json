@@ -1,0 +1,21 @@
+{
+  "type": "object",
+  "properties": {
+    "UserQuestion": {
+      "type": "string"
+    },
+    "GeneratedAnswer": {
+      "type": "string"
+    },
+    "Rating": {
+      "type": "integer"
+    },
+    "Thoughts": {
+      "type": "string"
+    },
+    "KnowledgeBaseDocument": {
+      "type": "string"
+    }
+  },
+  "required": [ "UserQuestion", "GeneratedAnswer", "Rating", "Thoughts", "KnowledgeBase" ]
+}

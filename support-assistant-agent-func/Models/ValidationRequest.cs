@@ -6,7 +6,8 @@ public class ValidationRequest
     public List<QuestionAndAnswer> question_and_answer { get; set; }
     public string SearchText { get; set; }
     public List<string> scope { get; set; }
-    public Evaluation Evaluation { get; set; }
+    public bool isProductionEvaluation { get; set; }
+    public string knowledgeBase { get; set; }
 }
 
 public class QuestionAndAnswer
