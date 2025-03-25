@@ -11,7 +11,6 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
-using System.Linq;
 using support_assistant_agent_func.Validation;
 
 namespace support_assistant_agent_func;

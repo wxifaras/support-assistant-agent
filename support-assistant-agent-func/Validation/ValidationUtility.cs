@@ -51,8 +51,7 @@ public class ValidationUtility: IValidationUtility
 
             User Question: {validationRequest.question_and_answer[0].question}            
             Generated answer: {validationRequest.question_and_answer[0].llmResponse}
-            Knowledge Base Document: {validationRequest.knowledgeBase}
-            ";
+            Knowledge Base Document: {validationRequest.knowledgeBase}";
         }
         else
         {
