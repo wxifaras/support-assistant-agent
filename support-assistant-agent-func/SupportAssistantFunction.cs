@@ -157,32 +157,10 @@ public class SupportAssistantFunction
 
             if (_productionTesting)
             {
-                ValidationRequest validationRequest = new ValidationRequest
-                {
-                    isProductionEvaluation = true,
-
-                    question_and_answer = new List<QuestionAndAnswer>
-                    {
-                        new QuestionAndAnswer
-                        {
-                            question = searchRequest.SearchText,
-                            llmResponse = result.Content!
-                        }
-                    }
-                };
-
-                var toolMessages = chatHistory
-                .Where(message => message.Role == AuthorRole.Tool)
-                .Select(message => message.Content)
-                .ToList();
-
-                //gets to most recent knowledge base doucment based on the user's most recent question
-                validationRequest.knowledgeBase = toolMessages.Last();
-
-                await _validationUtility.EvaluateSearchResultAsync(validationRequest);
-
+                var validationRequest = await RunProdValidationTestAsync(searchRequest, chatHistory, result);
                 return new OkObjectResult(validationRequest.ProductionEvaluation);
             }
+
             return new OkObjectResult(result.Content);
         }
         catch (Exception ex)
@@ -191,7 +169,36 @@ public class SupportAssistantFunction
             return new StatusCodeResult(StatusCodes.Status500InternalServerError);
         }
     }
-      
+
+    private async Task<ValidationRequest> RunProdValidationTestAsync(SearchRequest searchRequest, ChatHistory chatHistory, ChatMessageContent result)
+    {
+        var validationRequest = new ValidationRequest
+        {
+            isProductionEvaluation = true,
+
+            question_and_answer = new List<QuestionAndAnswer>
+                    {
+                        new QuestionAndAnswer
+                        {
+                            question = searchRequest.SearchText,
+                            llmResponse = result.Content!
+                        }
+                    }
+        };
+
+        var toolMessages = chatHistory
+        .Where(message => message.Role == AuthorRole.Tool)
+        .Select(message => message.Content)
+        .ToList();
+
+        //gets to most recent knowledge base doucment based on the user's most recent question
+        validationRequest.knowledgeBase = toolMessages.Last();
+
+        await _validationUtility.EvaluateSearchResultAsync(validationRequest);
+
+        return validationRequest;
+    }
+
     /// <summary>
     /// Tests the ground truth of a given input.
     /// </summary>
