@@ -262,7 +262,7 @@ public class SupportAssistantFunction
             }
         }
 
-        if (validationRequests.Count== 0)
+        if (validationRequests.Count == 0)
         {
             _logger.LogError("Request body and file content are both null or empty");
             return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
@@ -299,7 +299,6 @@ public class SupportAssistantFunction
         }
 
        return validationResponses;
-
     }
 
     private async Task<string> GetCommentsSummaryAsync(List<Comment> comments)
