@@ -192,7 +192,7 @@ public class SupportAssistantFunction
         .ToList();
 
         //gets to most recent knowledge base doucment based on the user's most recent question
-        validationRequest.knowledgeBase = toolMessages.Last();
+        validationRequest.knowledgeBase = toolMessages.Last() ?? string.Empty;
 
         await _validationUtility.EvaluateSearchResultAsync(validationRequest);
 
