@@ -12,7 +12,10 @@
     },
     "Thoughts": {
       "type": "string"
+    },
+    "KnowledgeBaseDocument": {
+      "type": "string"
     }
   },
-  "required": [ "UserQuestion", "GeneratedAnswer", "Rating", "Thoughts" ]
+  "required": [ "UserQuestion", "GeneratedAnswer", "Rating", "Thoughts", "KnowledgeBase" ]
 }

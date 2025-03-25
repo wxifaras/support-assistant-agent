@@ -11,6 +11,7 @@ using support_assistant_agent_func.Models;
 using support_assistant_agent_func.Prompts;
 using support_assistant_agent_func.Services;
 using System.Text.Json;
+using System.Linq;
 using support_assistant_agent_func.Validation;
 
 namespace support_assistant_agent_func;
@@ -171,11 +172,18 @@ public class SupportAssistantFunction
                     }
                 };
 
+                var toolMessages = chatHistory
+                .Where(message => message.Role == AuthorRole.Tool)
+                .Select(message => message.Content)
+                .ToList();
+
+                //gets to most recent knowledge base doucment based on the user's most recent question
+                validationRequest.knowledgeBase = toolMessages.Last();
+
                 await _validationUtility.EvaluateSearchResultAsync(validationRequest);
 
                 return new OkObjectResult(validationRequest.ProductionEvaluation);
             }
-
             return new OkObjectResult(result.Content);
         }
         catch (Exception ex)

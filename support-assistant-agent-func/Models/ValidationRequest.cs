@@ -9,6 +9,7 @@ public class ValidationRequest
     public Evaluation Evaluation { get; set; }
     public ProductionEvaluation ProductionEvaluation { get; set; }
     public bool isProductionEvaluation { get; set; }
+    public string knowledgeBase { get; set; }
 }
 
 public class QuestionAndAnswer

@@ -36,21 +36,23 @@ public class ValidationUtility: IValidationUtility
             evaluationSchema = await File.ReadAllTextAsync(evaluationSchemaPath);
 
             evaluationPrompt = $@"
-            You are an AI assistant evaluating the correctness of answers in a production environment. The 'correctness metric' is a measure of how well the generated answer answers the given User Question.
+            You are an AI assistant evaluating the correctness of answers in a production environment. The 'correctness metric' is a measure of if the generated answer to a given User Question is correct based on the Knowledge Base Document. 
 
-            You need to compare the generated answer against the user question and score the answer between one to five using the following rating scale:
+            You need to compare the generated answer against the knowledge base document and score the answer between one to five using the following rating scale:
             One: The answer is incorrect
-            Three: The answer is partially correct, but could be missing some key context or nuance that makes it potentially misleading or doesn't directly answer the users question.
-            Five: The answer completly answers the user question.
+            Three: The answer is partially correct, but could be missing some key context or nuance that makes it potentially misleading or incomplete compared to the knowledge base document provided.
+            Five: The answer is correct and complete based on the knowledge base document provided.
 
             You must also provide your reasoning as to why the rating you selected was given.
 
             The rating value should always be either 1, 3, or 5.
 
-            You will add your thoughts and rating into the thoughts JSON and return the JSON as the response.
+            You will add your thoughts, rating, and knowledge base doucment into the thoughts JSON and return the JSON as the response.
 
             User Question: {validationRequest.question_and_answer[0].question}            
-            Generated answer: {validationRequest.question_and_answer[0].llmResponse}";
+            Generated answer: {validationRequest.question_and_answer[0].llmResponse}
+            Knowledge Base Document: {validationRequest.knowledgeBase}
+            ";
         }
         else
         {
@@ -95,12 +97,14 @@ public class ValidationUtility: IValidationUtility
         if (validationRequest.isProductionEvaluation)
         {
             var evaluationResponse = JsonSerializer.Deserialize<ProductionEvaluation>(chatUpdates.Value.Content[0].Text);
+
             evaluationResponse = new ProductionEvaluation
             {
                 UserQuestion = evaluationResponse!.UserQuestion,
                 GeneratedAnswer = evaluationResponse.GeneratedAnswer,
                 Rating = evaluationResponse.Rating,
-                Thoughts = evaluationResponse.Thoughts
+                Thoughts = evaluationResponse.Thoughts,
+                KnowledgeBaseDocument = evaluationResponse.KnowledgeBaseDocument
             };
 
             validationRequest.ProductionEvaluation = evaluationResponse;

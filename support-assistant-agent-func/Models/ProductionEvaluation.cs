@@ -12,4 +12,5 @@ public class ProductionEvaluation
     public string GeneratedAnswer { get; set; }
     public int Rating { get; set; }
     public string Thoughts { get; set; }
+    public string KnowledgeBaseDocument { get; set; }
 }
