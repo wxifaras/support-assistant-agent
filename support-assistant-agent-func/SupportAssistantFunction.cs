@@ -157,8 +157,8 @@ public class SupportAssistantFunction
 
             if (_productionTesting)
             {
-                var validationRequest = await RunProdValidationTestAsync(searchRequest, chatHistory, result);
-                return new OkObjectResult(validationRequest.ProductionEvaluation);
+                var validationResponse = await RunProdValidationTestAsync(searchRequest, chatHistory, result);
+                return new OkObjectResult(validationResponse.ProductionEvaluation);
             }
 
             return new OkObjectResult(result.Content);
@@ -170,20 +170,20 @@ public class SupportAssistantFunction
         }
     }
 
-    private async Task<ValidationRequest> RunProdValidationTestAsync(SearchRequest searchRequest, ChatHistory chatHistory, ChatMessageContent result)
+    private async Task<ValidationResponse> RunProdValidationTestAsync(SearchRequest searchRequest, ChatHistory chatHistory, ChatMessageContent result)
     {
         var validationRequest = new ValidationRequest
         {
             isProductionEvaluation = true,
 
             question_and_answer = new List<QuestionAndAnswer>
-                    {
-                        new QuestionAndAnswer
-                        {
-                            question = searchRequest.SearchText,
-                            llmResponse = result.Content!
-                        }
-                    }
+            {
+               new QuestionAndAnswer
+               {
+                  question = searchRequest.SearchText,
+                  llmResponse = result.Content!
+               }
+            }
         };
 
         var toolMessages = chatHistory
@@ -191,12 +191,11 @@ public class SupportAssistantFunction
         .Select(message => message.Content)
         .ToList();
 
-        //gets to most recent knowledge base doucment based on the user's most recent question
         validationRequest.knowledgeBase = toolMessages.Last();
 
-        await _validationUtility.EvaluateSearchResultAsync(validationRequest);
-
-        return validationRequest;
+        var validationResponse= await _validationUtility.EvaluateSearchResultAsync(validationRequest);
+        
+        return validationResponse;
     }
 
     /// <summary>
@@ -269,15 +268,16 @@ public class SupportAssistantFunction
             return new BadRequestObjectResult("Request body and file content cannot be both null or empty");
         }
 
-        await CallKernelWithValidationRequestsAsync(validationRequests);
-
-        evaluationResponses = validationRequests.Select(x => x.Evaluation).ToList();
+        var validationResponses = await CallKernelWithValidationRequestsAsync(validationRequests);
+        evaluationResponses = validationResponses.Select(x => x.Evaluation).ToList();
 
         return new OkObjectResult(evaluationResponses);
     }
 
-    private async Task CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
-    {   
+    private async Task<List<ValidationResponse>> CallKernelWithValidationRequestsAsync(List<ValidationRequest> validationRequests)
+    {
+      var validationResponses = new List<ValidationResponse>();
+
         foreach (var request in validationRequests)
         {
             var chatHistory = new ChatHistory();
@@ -294,8 +294,12 @@ public class SupportAssistantFunction
 
             request.question_and_answer[0].llmResponse = result.Content!;
 
-            await _validationUtility.EvaluateSearchResultAsync(request);
+            var response = await _validationUtility.EvaluateSearchResultAsync(request);
+            validationResponses.Add(response);
         }
+
+       return validationResponses;
+
     }
 
     private async Task<string> GetCommentsSummaryAsync(List<Comment> comments)

@@ -8,7 +8,7 @@ namespace support_assistant_agent_func.Validation;
 
 public interface IValidationUtility
 {
-    Task EvaluateSearchResultAsync(ValidationRequest validationRequest);
+    Task <ValidationResponse> EvaluateSearchResultAsync(ValidationRequest validationRequest);
 }
 
 public class ValidationUtility: IValidationUtility
@@ -22,12 +22,13 @@ public class ValidationUtility: IValidationUtility
         _azureOpenAIDeployment = azureOpenAIOptions.Value.AzureOpenAIDeployment ?? throw new ArgumentNullException(nameof(azureOpenAIOptions.Value.AzureOpenAIDeployment));
     }
 
-    public async Task EvaluateSearchResultAsync(ValidationRequest validationRequest)
+    public async Task <ValidationResponse> EvaluateSearchResultAsync(ValidationRequest validationRequest)
     {
         string baseDirectory;
         string evaluationSchemaPath;
         string evaluationSchema;
         string evaluationPrompt;
+        ValidationResponse validationResponse = new ValidationResponse();
 
         if (validationRequest.isProductionEvaluation)
         {
@@ -106,7 +107,7 @@ public class ValidationUtility: IValidationUtility
                 KnowledgeBaseDocument = evaluationResponse.KnowledgeBaseDocument
             };
 
-            validationRequest.ProductionEvaluation = evaluationResponse;
+            validationResponse.ProductionEvaluation = evaluationResponse;
         }
         else
         {
@@ -121,7 +122,9 @@ public class ValidationUtility: IValidationUtility
                 GroundTruthAnswer = evaluationResponse.GroundTruthAnswer
             };
 
-            validationRequest.Evaluation = evaluationResponse;
+            validationResponse.Evaluation = evaluationResponse;
         }
+
+       return validationResponse;
     }
 }
