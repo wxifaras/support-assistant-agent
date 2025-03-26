@@ -131,7 +131,7 @@ public class AzureAISearchService : IAzureAISearchService
         {
             Filter = $"Scope/any(s: search.in(s, '{scope.Replace(" ", "")}', ','))",
             Size = 3, // number of results to return
-            Select = { "title", "problem_id", "description", "status", "root_cause", "workaround", "resolution", "Summary" },
+            Select = { "title", "problem_id", "description", "status", "root_cause", "workaround", "resolution", "related_incidents", "Summary" },
             IncludeTotalCount = true
         };
 
