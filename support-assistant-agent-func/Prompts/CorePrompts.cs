@@ -13,6 +13,7 @@ public static class CorePrompts
             as any possible workarounds and solutions.
 
             ### GUIDELINES ###
+            - Do not search the index if the user query is not a question about a product.
             - You must only use the data you receive from the SearchPlugin.
             - If there are no results returned from the SearchPlugin, you must explain to the user that you did not find a match in the knowledge base that reflects the issue they are asking about.
               You will then politely ask them if they can provide additional information to help you.";
